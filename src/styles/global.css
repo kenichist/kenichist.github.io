@@ -49,6 +49,29 @@ main {
   flex: 1 0 auto;
 }
 
+/* Page content sits above the koi follower (fixed, z-index 0), so it swims beneath the text. */
+body > header,
+body > main,
+body > footer {
+  position: relative;
+  z-index: 1;
+}
+
+.koi-follower {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 500ms ease-out;
+  will-change: transform;
+}
+
+.koi-follower.is-on {
+  opacity: 0.92;
+}
+
 main:focus {
   outline: none;
 }

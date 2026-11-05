@@ -70,6 +70,13 @@ routes.
 4. Run `npm test && npm run build`. The build runs the type check first.
 5. Optionally run the rendered QA (see README) against the new build.
 
+## Hero artwork
+
+`src/content/site.ts` → `HERO`:
+
+- `'koi'` (current): a koi pond. One koi follows the pointer when the pond is off-screen and on other pages.
+- `'field'`: the wind field, or a video clip as described below. There's no follower in this mode.
+
 ## Hero artwork from a video
 
 The hero field can play a pre-converted video loop instead of the generated pattern.
@@ -80,7 +87,7 @@ npm run field:convert -- path/to/clip.mov --name grass --segments 2-8,10-15
 ```
 
 This writes `public/field/grass.wide.json` and `public/field/grass.narrow.json`. To use them, set
-`FIELD_CLIP = 'grass'` in `src/content/site.ts`. Run `npm run field:convert` with no arguments
+`HERO = 'field'` and `FIELD_CLIP = 'grass'` in `src/content/site.ts`. Run `npm run field:convert` with no arguments
 to see every option (fps, density, dissolve length, crop focus, poster frame).
 
 ### Subject only (no background)

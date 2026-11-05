@@ -231,7 +231,45 @@ noindex and isn't linked from the navigation.
   - The pad uses `touch-action: none`, so finger drawing doesn't scroll the page.
 - **MNIST credit:** LeCun, Cortes and Burges, CC BY-SA 3.0. It appears on the page.
 
-## 9. Deliberate deviations from tooling heuristics
+## 9. Koi pond hero and follower
+
+`src/scripts/koi/{fish,pond,follower}.ts`. `HERO = 'koi'` in `src/content/site.ts`; set `'field'` to restore the wind field.
+
+**Pond (homepage hero):** it uses the same character-field renderer, motion states, pause button,
+visibility suspension and no-JS text frame as the field. The grid is finer: 96×30 cells, or
+52×24 below 640px.
+
+- **Koi:** three, seen from above. Each body is sampled per cell in the fish's own frame, so glyphs
+  stay upright at any heading. Parts:
+  - an `=` body with bright `o` markings;
+  - `@` eyes and stroke-glyph outlines;
+  - flapping `,` `'` pectoral fins;
+  - a forked tail fan that follows a travelling spine wave.
+
+  The tail beats faster when the koi swims faster or turns.
+- **Behaviour:** slow wandering, soft steering back from the edges, and keeping apart from each other.
+- **Lily pads:** three, drawn above the koi so they swim beneath them. One has a flower and
+  notched veins.
+- **Water:** ripple rings from the pointer (stronger when it moves faster) and sparse drifting `.` `~`.
+- **Click or tap:** drops food (`o`). The nearest one or two koi swim to it and eat it.
+- **Pacing:** 30fps (the field is 20fps), stopped when paused, hidden, off-screen or under reduced motion.
+
+**Follower:** one koi (112px), drawn on a small fixed canvas that is moved by `transform`.
+
+- **When it's active:**
+  - on the homepage, only while the pond is out of view;
+  - on every other page, all the time.
+- **Spawn:** it swims down out of the pond when you scroll past it, or in from the nearest edge.
+  On page changes it continues from where it was (sessionStorage, within 20s).
+- **Behaviour:** it seeks the pointer, then circles at about 70px rather than covering it. After 5s
+  idle it slows to 15fps, and after 25s idle it rests.
+- **Layering:** z-index 0 beneath the page content (z-index 1), `pointer-events: none`, `aria-hidden`.
+- **Never shown:**
+  - on touch-only devices (no hovering pointer);
+  - under `prefers-reduced-motion`;
+  - after the visitor has paused the hero animation (`ks-field-paused`).
+
+## 10. Deliberate deviations from tooling heuristics
 
 - **The uppercase role line sits above the name** (`AI / MACHINE LEARNING ENGINEER`). Impeccable's
   craft floor bans eyebrow labels, but the approved mockup has one, and Impeccable's own rule is
@@ -239,6 +277,8 @@ noindex and isn't linked from the navigation.
 - **All-monospace text and a purple palette** are required by the brief. They are not a "technical
   costume".
 - Section labels are not numbered, and no metrics, counters, cards, or terminal styling were added.
+- **The koi follower** is a decorative companion, not a cursor replacement: the system cursor is
+  never hidden or moved.
 - **The entry loader** was requested later and overrides the original "no forced splash screens" rule.
   It keeps that rule's intent: it never shows on internal navigation, it doesn't block forever,
   it doesn't trap no-JS visitors, and it respects reduced motion.

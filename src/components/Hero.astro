@@ -1,6 +1,7 @@
 ---
 import AsciiField from './AsciiField.astro';
 import { content } from '../lib/site-content';
+import { site } from '../content/site';
 
 const { name, role, intro } = content.profile;
 // Break the name before the last word: "Kenichi Shawn" / "Tanzil".
@@ -28,7 +29,7 @@ const nameLines = split > 0 ? [name.slice(0, split), name.slice(split + 1)] : [n
     }
   </div>
   <div class="hero-art enter" style="--i: 2">
-    <AsciiField />
+    <AsciiField scene={site.hero} />
   </div>
 </section>
 

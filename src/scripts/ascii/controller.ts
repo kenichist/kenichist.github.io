@@ -1,5 +1,7 @@
 import { DEFAULT_SEED, hash2, sampleCell, type FieldLevel } from './field';
 import { CELL_GLYPHS, decodeCode, isFieldClip, type FieldClip } from './frames';
+import { KOI_GLYPHS } from '../koi/fish';
+import { Pond } from '../koi/pond';
 import {
   controlAction,
   deriveState,
@@ -14,7 +16,9 @@ import {
 } from './motion-state';
 
 /* Tuned by profiling: 20fps is calm enough for a drift and cheap on mobile. */
-const FRAME_MS = 1000 / 20;
+const FIELD_FRAME_MS = 1000 / 20;
+const KOI_FRAME_MS = 1000 / 30; // swimming reads better a little smoother
+const KOI_FRAME_MS_SMALL = 1000 / 24; // phones / touch: a little cheaper
 const MAX_DPR = 2;
 const MAX_CELLS = 140 * 48;
 /** Cell geometry as multiples of the glyph font size; must match the CSS fallback. */
@@ -65,6 +69,9 @@ export class AsciiField {
   private push = new Float32Array(0);
   private atlas: HTMLCanvasElement | null = null;
   private colors: string[] = [];
+  /** Koi pond scene (data-scene="koi"); null → field or clip. */
+  private pond: Pond | null = null;
+  private frameMs = FIELD_FRAME_MS;
   /** Video-derived clip for the current grid; null → procedural field. */
   private clip: FieldClip | null = null;
   private clipVariant: 'wide' | 'narrow' | null = null;
@@ -204,6 +211,13 @@ export class AsciiField {
   private onSettle(e: MouseEvent): void {
     if (!motionAllowed(this.flags)) return;
     const p = this.toNormalised(e.clientX, e.clientY);
+    if (this.pond) {
+      // In the pond a click (or tap) feeds the koi instead of settling the water.
+      if (p) this.pond.feed(p.x * this.pond.w, p.y * this.pond.h);
+      this.root.dataset.fed = String(Number(this.root.dataset.fed || 0) + 1);
+      this.schedule();
+      return;
+    }
     if (p) this.impulse = { x: p.x, y: p.y, strength: 1 };
     this.dispatch({ type: 'settle' });
   }
@@ -241,9 +255,13 @@ export class AsciiField {
             ? 'paused'
             : state === 'settled'
               ? 'settled'
-              : fine
-                ? 'move to disturb · click to settle'
-                : 'tap to settle';
+              : this.pond
+                ? fine
+                  ? 'move to make ripples · click to feed'
+                  : 'tap to feed the koi'
+                : fine
+                  ? 'move to disturb · click to settle'
+                  : 'tap to settle';
     }
   }
 
@@ -258,6 +276,7 @@ export class AsciiField {
     if (!this.grid || !this.visible()) return false;
     if (shouldRun(this.flags)) return true;
     if (this.flags.userPaused || (this.flags.reducedMotion && !this.flags.motionOptIn)) return false;
+    if (this.pond) return false;
     // settled: finish easing out, then stop
     return this.timeScale > 0.004 || this.hasDisplacement() || this.impulse !== null;
   }
@@ -268,7 +287,7 @@ export class AsciiField {
    */
   private schedule(): void {
     if (this.raf || this.timer || !this.needsFrames()) return;
-    const wait = Math.max(0, FRAME_MS - (performance.now() - this.lastFrame) - 4);
+    const wait = Math.max(0, this.frameMs - (performance.now() - this.lastFrame) - 4);
     if (wait > 0) {
       this.timer = window.setTimeout(() => {
         this.timer = 0;
@@ -285,12 +304,12 @@ export class AsciiField {
     // One clock (performance.now) for both gating and timing: rAF timestamps can
     // lag far behind it under CPU throttling, which would let frames bunch up.
     const now = performance.now();
-    if (now - this.lastFrame < FRAME_MS - 6) {
+    if (now - this.lastFrame < this.frameMs - 6) {
       this.schedule();
       return;
     }
     // Clamp long gaps (tab switches, offscreen) so time never jumps.
-    this.step(Math.min(now - this.lastFrame, FRAME_MS * 3) / 1000);
+    this.step(Math.min(now - this.lastFrame, this.frameMs * 3) / 1000);
     this.draw(now);
     this.lastFrame = now;
     this.schedule();
@@ -303,6 +322,17 @@ export class AsciiField {
     this.t += dt * this.timeScale;
 
     const g = this.grid!;
+    if (this.pond) {
+      const pond = this.pond;
+      if (this.pointer.dirty && this.pointer.inside) {
+        const speed = Math.hypot(this.pointer.vx * pond.w, this.pointer.vy * pond.h) / Math.max(dt, 0.016);
+        pond.stir(this.pointer.x * pond.w, this.pointer.y * pond.h, speed);
+        this.pointer.vx = this.pointer.vy = 0;
+        this.pointer.dirty = false;
+      }
+      pond.step(dt * this.timeScale);
+      return;
+    }
     if (this.pointer.dirty && this.pointer.inside) {
       const speed = Math.hypot(this.pointer.vx, this.pointer.vy);
       this.applyImpulse(this.pointer.x, this.pointer.y, Math.min(1, 0.25 + speed * 18), this.pointer.vx);
@@ -395,6 +425,14 @@ export class AsciiField {
       this.dispY = new Float32Array(n);
       this.push = new Float32Array(n);
     }
+    if (this.root.dataset.scene === 'koi') {
+      const h = (rows * pitchY) / dpr;
+      if (this.pond) this.pond.resize(box.width, h);
+      else {
+        this.pond = new Pond(box.width, h);
+        this.frameMs = cols < 60 || !this.finePointer.matches ? KOI_FRAME_MS_SMALL : KOI_FRAME_MS;
+      }
+    }
     this.buildAtlas();
     return true;
   }
@@ -435,7 +473,7 @@ export class AsciiField {
   private buildAtlas(): void {
     const g = this.grid!;
     const atlas = document.createElement('canvas');
-    atlas.width = g.cw * CELL_GLYPHS.length;
+    atlas.width = g.cw * ATLAS_GLYPHS.length;
     atlas.height = g.ch * 4;
     const a = atlas.getContext('2d');
     if (!a) return;
@@ -445,7 +483,7 @@ export class AsciiField {
     a.textBaseline = 'middle';
     for (let level = 0; level < 4; level++) {
       a.fillStyle = this.colors[level];
-      CELL_GLYPHS.forEach((glyph, gi) => {
+      ATLAS_GLYPHS.forEach((glyph, gi) => {
         a.fillText(glyph, gi * g.cw + g.cw / 2, level * g.ch + g.ch / 2);
       });
     }
@@ -455,6 +493,8 @@ export class AsciiField {
   private draw(now: number): void {
     const g = this.grid;
     if (!g || !this.atlas) return;
+    // frame counter for tests and profiling (a plain property; no DOM writes)
+    (this.root as HTMLElement & { __fieldFrames?: number }).__fieldFrames = ((this.root as HTMLElement & { __fieldFrames?: number }).__fieldFrames ?? 0) + 1;
     const { cols, rows, cw, ch, pitchX, pitchY } = g;
     const ctx = this.ctx;
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -465,6 +505,14 @@ export class AsciiField {
       if (reveal >= 1) this.revealStart = -1;
     }
 
+    if (this.pond) {
+      const atlas = this.atlas;
+      this.pond.render(cols, rows, (col, row, cell) => {
+        if (reveal < 1 && hash2(col, row, this.seed + 313) > reveal) return;
+        ctx.drawImage(atlas, KOI_TO_ATLAS[cell.glyph] * cw, cell.level * ch, cw, ch, Math.round(col * pitchX), Math.round(row * pitchY), cw, ch);
+      });
+      return;
+    }
     if (this.clip) {
       this.drawClip(this.clip, reveal);
       return;
@@ -521,7 +569,10 @@ export class AsciiField {
   }
 }
 
-const GLYPH_INDEX = Object.fromEntries(CELL_GLYPHS.map((g, i) => [g, i])) as Record<string, number>;
+/** One atlas covers every scene: clip codec glyphs first (indices are part of the clip format), then koi extras. */
+const ATLAS_GLYPHS: string[] = [...CELL_GLYPHS, ...KOI_GLYPHS.filter((g) => !(CELL_GLYPHS as readonly string[]).includes(g))];
+const GLYPH_INDEX = Object.fromEntries(ATLAS_GLYPHS.map((g, i) => [g, i])) as Record<string, number>;
+const KOI_TO_ATLAS = KOI_GLYPHS.map((g) => GLYPH_INDEX[g]);
 const BAR = GLYPH_INDEX['|'];
 const SLASH = GLYPH_INDEX['/'];
 const BACKSLASH = GLYPH_INDEX['\\'];

@@ -62,12 +62,16 @@ const fieldState = (page) => page.evaluate(() => document.querySelector('[data-a
 /** Visible label only (the screen-reader suffix is checked separately). */
 const buttonText = (page) => page.evaluate(() => document.querySelector('[data-field-toggle] [data-label]')?.textContent.trim());
 const buttonName = (page) => page.evaluate(() => document.querySelector('[data-field-toggle]')?.textContent.replace(/[\[\]]/g, '').replace(/\s+/g, ' ').trim());
+/** Frames drawn by the hero field (not the koi follower or loader). */
 async function rafRate(page, ms = 1000) {
-  const a = await page.evaluate(() => window.__raf);
+  const read = () => page.evaluate(() => document.querySelector('[data-ascii-field]')?.__fieldFrames ?? 0);
+  const a = await read();
   await page.waitForTimeout(ms);
-  const b = await page.evaluate(() => window.__raf);
+  const b = await read();
   return ((b - a) * 1000) / ms;
 }
+let scene = 'field';
+const rateOk = (r) => (scene === 'koi' ? r > 22 && r < 34 : r > 12 && r < 26);
 async function scrollThrough(page) {
   const h = await page.evaluate(() => document.documentElement.scrollHeight);
   for (let y = 0; y <= h; y += 300) { await page.evaluate((v) => window.scrollTo(0, v), y); await page.waitForTimeout(60); }
@@ -188,8 +192,10 @@ for (const vp of VIEWPORTS) {
   const { ctx, page } = await newPage({}, [RAF_COUNTER]);
   await page.goto(BASE + '/', { waitUntil: 'networkidle' });
   await page.waitForTimeout(800);
+  scene = await page.evaluate(() => document.querySelector('[data-ascii-field]').dataset.scene);
+  report.scene = scene;
   const activeRate = await rafRate(page);
-  pass('active field runs at a capped rate (~20/s)', activeRate > 12 && activeRate < 26, `${activeRate.toFixed(1)} frames/s`);
+  pass(`active ${scene} runs at a capped rate (${scene === 'koi' ? '~30' : '~20'}/s)`, rateOk(activeRate), `${activeRate.toFixed(1)} frames/s`);
   report.activeFrameRate = activeRate;
   pass('control label describes action while moving', (await buttonText(page)) === 'pause', await buttonText(page));
   pass('control accessible name is descriptive', (await buttonName(page)) === 'pause the background animation', await buttonName(page));
@@ -198,15 +204,20 @@ for (const vp of VIEWPORTS) {
   await page.mouse.move(box.x + box.width * 0.4, box.y + box.height * 0.5);
   await page.mouse.move(box.x + box.width * 0.6, box.y + box.height * 0.5, { steps: 8 });
   await page.mouse.click(box.x + box.width * 0.6, box.y + box.height * 0.5);
-  pass('click settles the field', (await fieldState(page)) === 'settled');
-  pass('control offers resume after settle', /resume/.test(await buttonText(page)), await buttonText(page));
-  await page.waitForTimeout(1600);
-  const settledRate = await rafRate(page);
-  pass('settled field schedules no frames', settledRate === 0, `${settledRate}/s`);
-  await page.click('[data-field-toggle]');
-  pass('resume returns to active', (await fieldState(page)) === 'active');
-  await page.waitForTimeout(300);
-  pass('resumed field schedules frames again', (await rafRate(page, 600)) > 10);
+  if (scene === 'koi') {
+    const fed = await page.evaluate(() => document.querySelector('[data-ascii-field]').dataset.fed);
+    pass('click feeds the koi (pond keeps swimming)', fed === '1' && (await fieldState(page)) === 'active', `fed=${fed}`);
+  } else {
+    pass('click settles the field', (await fieldState(page)) === 'settled');
+    pass('control offers resume after settle', /resume/.test(await buttonText(page)), await buttonText(page));
+    await page.waitForTimeout(1600);
+    const settledRate = await rafRate(page);
+    pass('settled field schedules no frames', settledRate === 0, `${settledRate}/s`);
+    await page.click('[data-field-toggle]');
+    pass('resume returns to active', (await fieldState(page)) === 'active');
+    await page.waitForTimeout(300);
+    pass('resumed field schedules frames again', (await rafRate(page, 600)) > 10);
+  }
 
   // hidden tab — simulate visibility change
   const setHidden = (h) => page.evaluate((hidden) => {
@@ -250,7 +261,7 @@ for (const vp of VIEWPORTS) {
     return { surface: Math.round(s.width), canvas: Math.round(c.width) };
   });
   pass('after resizes the canvas matches its box', geom.surface === geom.canvas, JSON.stringify(geom));
-  pass('after resizes there is still one loop (rate unchanged)', afterResize > 12 && afterResize < 26, `${afterResize.toFixed(1)}/s`);
+  pass('after resizes there is still one loop (rate unchanged)', rateOk(afterResize), `${afterResize.toFixed(1)}/s`);
   pass('no console errors during motion lifecycle', page.__errors.length === 0, page.__errors.join(' | '));
   await ctx.close();
 }
@@ -335,7 +346,7 @@ for (const vp of VIEWPORTS) {
   }
   await page.waitForTimeout(500);
   const rate = await rafRate(page);
-  pass('after repeated back/forward the field runs one loop', rate > 12 && rate < 26, `${rate.toFixed(1)}/s`);
+  pass('after repeated back/forward the field runs one loop', rateOk(rate), `${rate.toFixed(1)}/s`);
   await page.evaluate(() => window.scrollTo(0, 900));
   await page.waitForTimeout(200);
   await page.click('a.row >> nth=1');
@@ -426,7 +437,8 @@ if (LIVE) {
   await page.waitForTimeout(500);
   const box = await page.locator('.field-canvas').boundingBox();
   await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
-  pass('tap settles the field on touch', (await fieldState(page)) === 'settled');
+  if (scene === 'koi') pass('tap feeds the koi on touch', (await page.evaluate(() => document.querySelector('[data-ascii-field]').dataset.fed)) === '1');
+  else pass('tap settles the field on touch', (await fieldState(page)) === 'settled');
   const ta = await page.evaluate(() => getComputedStyle(document.querySelector('.field-canvas')).touchAction);
   pass('field does not capture touch scrolling', ta === 'auto' || ta.includes('pan-y'), ta);
   await ctx.close();
@@ -507,6 +519,66 @@ if (LIVE) {
   await fp.waitForFunction(() => getComputedStyle(document.querySelector('main')).visibility === 'visible', null, { timeout: 15000 });
   pass('CSS failsafe reveals the page if the loader script never runs', Date.now() - f0 < 10000, `${Date.now() - f0} ms`);
   await fs.close();
+}
+
+/* ---------- 13. koi follower ---------- */
+if (scene === 'koi') {
+  const { ctx, page } = await newPage();
+  await page.goto(BASE + '/', { waitUntil: 'networkidle' });
+  await page.mouse.move(700, 500);
+  await page.mouse.move(900, 600, { steps: 10 });
+  await page.waitForTimeout(500);
+  const on = () => page.evaluate(() => document.querySelector('.koi-follower')?.classList.contains('is-on') ?? false);
+  pass('follower stays hidden while the pond is in view', !(await on()));
+  await page.mouse.wheel(0, 900);
+  await page.waitForTimeout(700);
+  pass('follower appears once the pond scrolls out of view', await on());
+  for (const [x, y] of [[400, 300], [900, 420], [600, 650]]) {
+    await page.mouse.move(x, y, { steps: 25 });
+    await page.waitForTimeout(700);
+  }
+  await page.waitForTimeout(1800);
+  const d = await page.evaluate(() => {
+    const el = document.querySelector('.koi-follower');
+    const m = /translate3d\(([-\d.]+)px, ([-\d.]+)px/.exec(el.style.transform);
+    const r = el.getBoundingClientRect();
+    return m ? Math.hypot(Number(m[1]) + r.width / 2 - 600, Number(m[2]) + r.height / 2 - 650) : -1;
+  });
+  pass('follower catches up and circles the pointer (within ~120px)', d >= 0 && d < 120, `${Math.round(d)}px`);
+  const layer = await page.evaluate(() => ({
+    z: getComputedStyle(document.querySelector('.koi-follower')).zIndex,
+    main: getComputedStyle(document.querySelector('main')).zIndex,
+    pe: getComputedStyle(document.querySelector('.koi-follower')).pointerEvents,
+    hidden: document.querySelector('.koi-follower').getAttribute('aria-hidden'),
+  }));
+  pass('follower swims beneath the text, never takes clicks, hidden from AT', layer.z === '0' && layer.main === '1' && layer.pe === 'none' && layer.hidden === 'true', JSON.stringify(layer));
+  await page.mouse.wheel(0, -3000);
+  await page.waitForTimeout(800);
+  pass('follower leaves when the pond is back in view', !(await on()));
+  await page.evaluate(() => document.querySelector('a[href="/notes/"]').click());
+  await page.waitForLoadState('networkidle');
+  await page.mouse.move(500, 400, { steps: 5 });
+  await page.mouse.move(800, 500, { steps: 20 });
+  await page.waitForTimeout(900);
+  pass('follower is active on other pages', await on());
+  pass('no errors from the follower', page.__errors.length === 0, page.__errors.join(' | '));
+  await ctx.close();
+  for (const [label, opts] of [
+    ['reduced motion', { reducedMotion: 'reduce' }],
+    ['touch-only device', { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true }],
+  ]) {
+    const x = await newPage(opts);
+    await x.page.goto(BASE + '/notes/', { waitUntil: 'networkidle' });
+    await x.page.waitForTimeout(500);
+    pass(`no follower for ${label}`, !(await x.page.evaluate(() => !!document.querySelector('.koi-follower'))));
+    await x.ctx.close();
+  }
+  const paused = await newPage({}, [() => localStorage.setItem('ks-field-paused', '1')]);
+  await paused.page.goto(BASE + '/notes/', { waitUntil: 'networkidle' });
+  await paused.page.mouse.move(600, 400, { steps: 10 });
+  await paused.page.waitForTimeout(500);
+  pass('no follower when the visitor paused the animation', !(await paused.page.evaluate(() => !!document.querySelector('.koi-follower'))));
+  await paused.ctx.close();
 }
 
 await browser.close();

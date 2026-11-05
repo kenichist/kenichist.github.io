@@ -16,8 +16,11 @@ const DEMO_DEFAULT = true;
 /** Public origin, e.g. "https://example.com". Leave empty until a domain exists; no sitemap URLs are emitted without it. */
 const SITE_URL = '';
 
+/** Homepage hero artwork: 'koi' (koi pond) or 'field' (wind field / video clip below). */
+const HERO: 'koi' | 'field' = 'koi';
+
 /**
- * Hero artwork source. '' → the procedural field. A name → the pre-converted video clip at
+ * Field artwork source (when HERO is 'field'). '' → the procedural field. A name → the pre-converted video clip at
  * public/field/<name>.wide.json + .narrow.json (made with `npm run field:convert`).
  * The FIELD_CLIP environment variable overrides this for one build.
  */
@@ -36,6 +39,7 @@ function envString(name: string): string | undefined {
 export const site = {
   demoContent: envFlag('DEMO_CONTENT') ?? DEMO_DEFAULT,
   siteUrl: envString('SITE_URL') ?? SITE_URL,
+  hero: (envString('HERO') === 'field' ? 'field' : envString('HERO') === 'koi' ? 'koi' : HERO) as 'koi' | 'field',
   fieldClip: (envString('FIELD_CLIP') ?? FIELD_CLIP).replace(/[^a-z0-9-]/gi, ''),
   /** Used in <title> after the page name. */
   titleSuffix: 'Kenichi Shawn Tanzil',

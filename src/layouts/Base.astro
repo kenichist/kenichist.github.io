@@ -58,10 +58,15 @@ const robots = content.demo || noindex ? 'noindex, nofollow' : undefined;
         }
         addEventListener('pagereveal', quiet); // incoming page
         addEventListener('pageswap', quiet); // outgoing page
+        // Some skipped transitions reject promises we never see; drop only that specific error.
+        addEventListener('unhandledrejection', function (e) {
+          var r = e.reason;
+          if (r && r.name === 'InvalidStateError' && /Transition was (aborted|skipped)/.test(r.message)) e.preventDefault();
+        });
       })();
     </script>
   </head>
-  <body>
+  <body data-follower={site.hero === 'koi' ? 'koi' : undefined}>
     <Loader />
     <a class="skip-link" href="#main">skip to content</a>
     <Header current={current} demo={content.demo} />
@@ -71,7 +76,9 @@ const robots = content.demo || noindex ? 'noindex, nofollow' : undefined;
     <Footer />
     <script>
       import { enhanceReveals } from '../scripts/reveal';
+      import { startFollower } from '../scripts/koi/follower';
       enhanceReveals();
+      startFollower();
     </script>
   </body>
 </html>

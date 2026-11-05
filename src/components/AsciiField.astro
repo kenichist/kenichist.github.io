@@ -2,6 +2,8 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { DEFAULT_SEED, renderTextFrame } from '../scripts/ascii/field';
 import { clipFrameText, isFieldClip, type FieldClip } from '../scripts/ascii/frames';
+import { KOI_GLYPHS } from '../scripts/koi/fish';
+import { Pond, pondText } from '../scripts/koi/pond';
 import { site } from '../content/site';
 
 /**
@@ -13,12 +15,20 @@ import { site } from '../content/site';
  */
 interface Props {
   seed?: number;
+  /** 'koi' → koi pond; 'field' → wind field (or a configured video clip) */
+  scene?: 'koi' | 'field';
 }
-const { seed = DEFAULT_SEED } = Astro.props;
+const { seed = DEFAULT_SEED, scene = 'field' } = Astro.props;
+const koi = scene === 'koi';
+
+/** Cell grid per breakpoint; must match --field-cols / --field-rows below. */
+const GRID = koi ? { wide: [96, 30], narrow: [52, 24] } : { wide: [70, 21], narrow: [46, 18] };
+/** Pond text frame at a nominal width; the client rebuilds the same pond at its real size. */
+const pondFrame = (cols: number, rows: number, w: number) => pondText(new Pond(w, (w * rows * 1.28) / (cols * 0.78)), cols, rows, KOI_GLYPHS);
 
 /** A configured video clip replaces the procedural field; a missing or invalid file falls back to it. */
 function loadClip(variant: 'wide' | 'narrow'): FieldClip | null {
-  if (!site.fieldClip) return null;
+  if (koi || !site.fieldClip) return null;
   const file = `public/field/${site.fieldClip}.${variant}.json`;
   if (!existsSync(file)) {
     console.warn(`[field] ${file} not found — using the procedural field`);
@@ -30,14 +40,16 @@ function loadClip(variant: 'wide' | 'narrow'): FieldClip | null {
 const clipWide = loadClip('wide');
 const clipNarrow = loadClip('narrow');
 const useClip = !!(clipWide && clipNarrow);
-const wide = useClip ? clipFrameText(clipWide!, clipWide!.poster, 70, 21) : renderTextFrame(70, 21, seed);
-const narrow = useClip ? clipFrameText(clipNarrow!, clipNarrow!.poster, 46, 18) : renderTextFrame(46, 18, seed);
+const [wc, wr] = GRID.wide;
+const [nc, nr] = GRID.narrow;
+const wide = koi ? pondFrame(wc, wr, 714) : useClip ? clipFrameText(clipWide!, clipWide!.poster, wc, wr) : renderTextFrame(wc, wr, seed);
+const narrow = koi ? pondFrame(nc, nr, 350) : useClip ? clipFrameText(clipNarrow!, clipNarrow!.poster, nc, nr) : renderTextFrame(nc, nr, seed);
 const clipAttrs = useClip
   ? { 'data-clip-wide': `/field/${site.fieldClip}.wide.json`, 'data-clip-narrow': `/field/${site.fieldClip}.narrow.json` }
   : {};
 ---
 
-<div class="field" data-ascii-field data-seed={seed} data-state="static" {...clipAttrs}>
+<div class="field" data-ascii-field data-scene={scene} data-seed={seed} data-state="static" {...clipAttrs}>
   <div class="field-surface" data-field-surface aria-hidden="true">
     <pre class="field-text field-text-wide">{wide}</pre>
     <pre class="field-text field-text-narrow">{narrow}</pre>
@@ -91,6 +103,11 @@ const clipAttrs = useClip
 
   .field-text-narrow {
     display: none;
+  }
+
+  .field[data-scene='koi'] {
+    --field-cols: 96;
+    --field-rows: 30;
   }
 
   /* canvas is inserted by the controller */
@@ -155,6 +172,11 @@ const clipAttrs = useClip
     .field {
       --field-cols: 46;
       --field-rows: 18;
+    }
+
+    .field[data-scene='koi'] {
+      --field-cols: 52;
+      --field-rows: 24;
     }
 
     .field-text-wide {
