@@ -139,7 +139,7 @@
     {
       "name": "after resizes there is still one loop (rate unchanged)",
       "ok": true,
-      "detail": "30.0/s"
+      "detail": "31.0/s"
     },
     {
       "name": "no console errors during motion lifecycle",
@@ -324,7 +324,7 @@
     {
       "name": "page is revealed only after load, font, and hero field are ready",
       "ok": true,
-      "detail": "3900 ms; {\"fontLoaded\":true,\"complete\":true,\"field\":true}"
+      "detail": "3918 ms; {\"fontLoaded\":true,\"complete\":true,\"field\":true}"
     },
     {
       "name": "finale ran: focus → fill → burn, then the loader removed itself",
@@ -349,17 +349,17 @@
     {
       "name": "loader holds while an asset is still loading (field script delayed 3.5s)",
       "ok": true,
-      "detail": "revealed at 5686 ms"
+      "detail": "revealed at 5681 ms"
     },
     {
       "name": "reduced motion: still network, no minimum display time",
       "ok": true,
-      "detail": "135 ms"
+      "detail": "97 ms"
     },
     {
       "name": "CSS failsafe reveals the page if the loader script never runs",
       "ok": true,
-      "detail": "8027 ms"
+      "detail": "8064 ms"
     },
     {
       "name": "follower stays hidden while the pond is in view",
@@ -374,7 +374,7 @@
     {
       "name": "follower catches up and circles the pointer (within ~120px)",
       "ok": true,
-      "detail": "66px"
+      "detail": "60px"
     },
     {
       "name": "follower swims beneath the text, never takes clicks, hidden from AT",
@@ -428,7 +428,7 @@
   ],
   "scene": "koi",
   "activeFrameRate": 30,
-  "loaderRevealMs": 3900,
+  "loaderRevealMs": 3918,
   "summary": {
     "total": 82,
     "failed": 0
