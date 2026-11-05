@@ -161,7 +161,8 @@ export class AsciiField {
       this.schedule();
     };
     // Behind the entry loader, hold the dissolve-in until the page is revealed.
-    if (document.documentElement.classList.contains('is-loading')) {
+    const cl = document.documentElement.classList;
+    if (cl.contains('is-loading') || cl.contains('is-arriving')) {
       document.addEventListener('ks:revealed', dissolveIn, { once: true, signal: this.abort.signal });
     } else {
       dissolveIn();

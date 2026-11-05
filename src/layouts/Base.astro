@@ -33,40 +33,36 @@ const robots = content.demo || noindex ? 'noindex, nofollow' : undefined;
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="preload" href="/fonts/iosevka-subset-400.woff2" as="font" type="font/woff2" crossorigin />
     <script is:inline>
-      // Entry loader: show on arrival from outside the site or on reload, not on internal navigation.
+      // Before first paint: entry loader (arrival from outside the site, or reload), or the
+      // second half of an ASCII page transition (a click on a link to another page of this site).
       (function () {
         var d = document.documentElement;
         try {
           var nav = performance.getEntriesByType('navigation')[0];
+          var type = nav ? nav.type : 'navigate';
           var internal = false;
           try {
             internal = !!document.referrer && new URL(document.referrer).origin === location.origin;
           } catch (e) {}
-          if ((nav && nav.type === 'reload') || !internal) {
+          if (type === 'reload' || !internal) {
             d.classList.add('is-loading');
             d.setAttribute('aria-busy', 'true');
           }
+          var raw = sessionStorage.getItem('ks-nav');
+          if (raw) {
+            var t = JSON.parse(raw);
+            var fresh = Date.now() - t.ts < 4000 && type === 'navigate' && t.to === location.pathname;
+            if (fresh && !d.classList.contains('is-loading') && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+              d.classList.add('is-arriving');
+            } else {
+              sessionStorage.removeItem('ks-nav');
+            }
+          }
         } catch (e) {}
-        // A cross-document view transition can be skipped (e.g. on a fast back/forward);
-        // Chrome then rejects its promises. Nothing depends on them, so swallow that.
-        function quiet(e) {
-          var vt = e.viewTransition;
-          if (!vt) return;
-          [vt.ready, vt.finished, vt.updateCallbackDone].forEach(function (p) {
-            if (p && p.catch) p.catch(function () {});
-          });
-        }
-        addEventListener('pagereveal', quiet); // incoming page
-        addEventListener('pageswap', quiet); // outgoing page
-        // Some skipped transitions reject promises we never see; drop only that specific error.
-        addEventListener('unhandledrejection', function (e) {
-          var r = e.reason;
-          if (r && r.name === 'InvalidStateError' && /Transition was (aborted|skipped)/.test(r.message)) e.preventDefault();
-        });
       })();
     </script>
   </head>
-  <body data-follower={site.hero === 'koi' ? 'koi' : undefined}>
+  <body>
     <Loader />
     <a class="skip-link" href="#main">skip to content</a>
     <Header current={current} demo={content.demo} />
@@ -76,9 +72,9 @@ const robots = content.demo || noindex ? 'noindex, nofollow' : undefined;
     <Footer />
     <script>
       import { enhanceReveals } from '../scripts/reveal';
-      import { startFollower } from '../scripts/koi/follower';
+      import { enhanceTransitions } from '../scripts/transition';
+      enhanceTransitions();
       enhanceReveals();
-      startFollower();
     </script>
   </body>
 </html>

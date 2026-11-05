@@ -7,5 +7,7 @@ export default defineConfig({
   output: 'static',
   trailingSlash: 'ignore',
   devToolbar: { enabled: false },
+  // fetch the next page on hover/focus, so it's usually ready when the cover finishes
+  prefetch: { prefetchAll: true, defaultStrategy: 'hover' },
   build: { format: 'directory' },
 });

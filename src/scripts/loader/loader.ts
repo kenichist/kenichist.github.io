@@ -1,3 +1,4 @@
+import { replayEntrance } from '../entrance';
 import { runFinale } from './finale';
 import { layoutNetwork, networkFrame } from './network';
 
@@ -86,15 +87,7 @@ export function runLoader(): void {
     removeEventListener('pointerdown', skip);
     html.classList.remove('is-loading');
     html.removeAttribute('aria-busy');
-    if (!reduced) {
-      // Replay the CSS entrance now that the page can be seen.
-      document.querySelectorAll<HTMLElement>('.enter').forEach((el) =>
-        el.getAnimations().forEach((a) => {
-          a.currentTime = 0;
-          a.play();
-        }),
-      );
-    }
+    replayEntrance(); // the page can be seen now
     document.dispatchEvent(new CustomEvent('ks:revealed'));
   }
 

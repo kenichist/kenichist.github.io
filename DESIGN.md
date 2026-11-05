@@ -108,7 +108,7 @@ absolutely positioned and hidden from assistive tech with `content: '[' / ''`. A
 | Entrance | CSS `enter`: 520ms, expo-out, 6px rise, 70ms stagger. Starts at first paint and never waits for JS | none |
 | Section reveal | once per section, 600ms, 8px; elements already in view are marked revealed before hiding starts | none |
 | Links and rows | brackets fade and arrows move 3px over 150ms; title underline on hover | colour change only |
-| Page change | cross-document View Transition, 220ms fade (progressive; plain links elsewhere) | off |
+| Page change | ASCII transition (§10): characters flood out from the click (300ms), settle (90ms), then the next page burns open from the same point (560ms) | plain links |
 | Field reveal | 320ms dissolve-in on first draw, field area only | off |
 | Field drift | 20fps, slow travelling gust | static |
 
@@ -231,45 +231,65 @@ noindex and isn't linked from the navigation.
   - The pad uses `touch-action: none`, so finger drawing doesn't scroll the page.
 - **MNIST credit:** LeCun, Cortes and Burges, CC BY-SA 3.0. It appears on the page.
 
-## 9. Koi pond hero and follower
+## 9. Koi pond hero
 
-`src/scripts/koi/{fish,pond,follower}.ts`. `HERO = 'koi'` in `src/content/site.ts`; set `'field'` to restore the wind field.
+`src/scripts/koi/{fish,pond}.ts`. `HERO = 'koi'` in `src/content/site.ts`; set `'field'` to restore the wind field.
 
 **Pond (homepage hero):** it uses the same character-field renderer, motion states, pause button,
 visibility suspension and no-JS text frame as the field. The grid is finer: 96×30 cells, or
 52×24 below 640px.
 
-- **Koi:** three, seen from above. Each body is sampled per cell in the fish's own frame, so glyphs
-  stay upright at any heading. Parts:
-  - an `=` body with bright `o` markings;
-  - `@` eyes and stroke-glyph outlines;
-  - flapping `,` `'` pectoral fins;
-  - a forked tail fan that follows a travelling spine wave.
-
-  The tail beats faster when the koi swims faster or turns.
-- **Behaviour:** slow wandering, soft steering back from the edges, and keeping apart from each other.
+- **Koi:** two grown koi and a young one, seen from directly above.
+  - **Body:** a follow-the-leader chain from nose to tail, with a travelling wave that grows toward
+    the tail. They bend through turns instead of rotating like rigid sprites.
+  - **Shape:** a symmetric torpedo with a rounded nose and an `@` eye on each side. A pair of soft
+    pectoral fans (`.`) sits behind the head, with small pelvic fins and a forked tail.
+  - **Markings:** `:` fill with bright `o` patches, drawn the same at any heading.
+  - **Rendering:** each cell is sampled at 3×3 points, so thin parts stay connected. Outline glyphs
+    follow the direction of the coverage edge.
+- **Swimming:**
+  - Koi head for destinations in open water, mostly ahead, and rarely double back.
+  - Turning needs forward speed.
+  - They swim in burst-and-glide strokes with water drag.
+  - They predict each other's paths over the next two seconds and steer clear, yielding speed.
+  - The bank always wins over other steering.
+  - A fast pointer pass startles a nearby koi into a dart.
+  - Five simulated minutes: no full circle within any 4s, and visible overlap about 3% of the time.
 - **Lily pads:** three, drawn above the koi so they swim beneath them. One has a flower and
   notched veins.
 - **Water:** ripple rings from the pointer (stronger when it moves faster) and sparse drifting `.` `~`.
 - **Click or tap:** drops food (`o`). The nearest one or two koi swim to it and eat it.
 - **Pacing:** 30fps (the field is 20fps), stopped when paused, hidden, off-screen or under reduced motion.
 
-**Follower:** one koi (112px), drawn on a small fixed canvas that is moved by `transform`.
+## 10. Page transitions
 
-- **When it's active:**
-  - on the homepage, only while the pond is out of view;
-  - on every other page, all the time.
-- **Spawn:** it swims down out of the pond when you scroll past it, or in from the nearest edge.
-  On page changes it continues from where it was (sessionStorage, within 20s).
-- **Behaviour:** it seeks the pointer, then circles at about 70px rather than covering it. After 5s
-  idle it slows to 15fps, and after 25s idle it rests.
-- **Layering:** z-index 0 beneath the page content (z-index 1), `pointer-events: none`, `aria-hidden`.
-- **Never shown:**
-  - on touch-only devices (no hovering pointer);
-  - under `prefers-reduced-motion`;
-  - after the visitor has paused the hero animation (`ks-field-paused`).
+`src/scripts/transition.ts`, reusing the loader's `WipeCanvas` (`src/scripts/loader/finale.ts`).
 
-## 10. Deliberate deviations from tooling heuristics
+- **Leaving** (a plain click or Enter on a same-site link to another page):
+  - a full-screen character canvas floods outward from the click point (300ms);
+  - the characters settle into plain background, spreading outward (90ms);
+  - then `location.assign()`.
+- **Arriving:** before first paint, the inline head script sees the `ks-nav` sessionStorage entry
+  (fresh, matching this path, and a normal navigation) and sets `html.is-arriving`. A CSS overlay of
+  plain background then covers the page. The script takes over on its first frame and burns the
+  page open from the same point (560ms, ember edge and scorched band). The entrance animation
+  replays and the hero dissolves in.
+- **Why no flicker:** the two halves meet at plain background.
+- **Prefetch:** `prefetchAll` on hover/focus, so the next page is usually cached before the cover ends.
+- **Ordinary link behaviour is kept for:**
+  - Ctrl/⌘/Shift/Alt and middle clicks;
+  - `target`, `download`, and external links;
+  - same-page `#anchors`;
+  - reduced motion;
+  - the entry loader.
+- **Back/forward:** never shows a cover. Pages restored from bfcache drop any leftover cover on
+  `pageshow`.
+- **Safety:** the arrival overlay lifts itself after 2s if the script fails. A navigation that never
+  arrives (offline) gives the page back after 6s.
+- **Replaced:** the earlier 220ms cross-document View Transition cross-fade, and with it the Chrome
+  skipped-transition error workaround.
+
+## 11. Deliberate deviations from tooling heuristics
 
 - **The uppercase role line sits above the name** (`AI / MACHINE LEARNING ENGINEER`). Impeccable's
   craft floor bans eyebrow labels, but the approved mockup has one, and Impeccable's own rule is
@@ -277,8 +297,6 @@ visibility suspension and no-JS text frame as the field. The grid is finer: 96×
 - **All-monospace text and a purple palette** are required by the brief. They are not a "technical
   costume".
 - Section labels are not numbered, and no metrics, counters, cards, or terminal styling were added.
-- **The koi follower** is a decorative companion, not a cursor replacement: the system cursor is
-  never hidden or moved.
 - **The entry loader** was requested later and overrides the original "no forced splash screens" rule.
   It keeps that rule's intent: it never shows on internal navigation, it doesn't block forever,
   it doesn't trap no-JS visitors, and it respects reduced motion.

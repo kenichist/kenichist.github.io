@@ -139,7 +139,7 @@
     {
       "name": "after resizes there is still one loop (rate unchanged)",
       "ok": true,
-      "detail": "31.0/s"
+      "detail": "30.0/s"
     },
     {
       "name": "no console errors during motion lifecycle",
@@ -324,7 +324,7 @@
     {
       "name": "page is revealed only after load, font, and hero field are ready",
       "ok": true,
-      "detail": "3918 ms; {\"fontLoaded\":true,\"complete\":true,\"field\":true}"
+      "detail": "4015 ms; {\"fontLoaded\":true,\"complete\":true,\"field\":true}"
     },
     {
       "name": "finale ran: focus → fill → burn, then the loader removed itself",
@@ -349,12 +349,12 @@
     {
       "name": "loader holds while an asset is still loading (field script delayed 3.5s)",
       "ok": true,
-      "detail": "revealed at 5681 ms"
+      "detail": "revealed at 5682 ms"
     },
     {
       "name": "reduced motion: still network, no minimum display time",
       "ok": true,
-      "detail": "97 ms"
+      "detail": "148 ms"
     },
     {
       "name": "CSS failsafe reveals the page if the loader script never runs",
@@ -362,54 +362,44 @@
       "detail": "8064 ms"
     },
     {
-      "name": "follower stays hidden while the pond is in view",
+      "name": "clicking a link to another page starts the ASCII cover",
       "ok": true,
       "detail": ""
     },
     {
-      "name": "follower appears once the pond scrolls out of view",
+      "name": "the next page arrives covered and burns open, then cleans up",
+      "ok": true,
+      "detail": "1000 ms click → revealed"
+    },
+    {
+      "name": "back button returns without a cover",
       "ok": true,
       "detail": ""
     },
     {
-      "name": "follower catches up and circles the pointer (within ~120px)",
-      "ok": true,
-      "detail": "60px"
-    },
-    {
-      "name": "follower swims beneath the text, never takes clicks, hidden from AT",
-      "ok": true,
-      "detail": "{\"z\":\"0\",\"main\":\"1\",\"pe\":\"none\",\"hidden\":\"true\"}"
-    },
-    {
-      "name": "follower leaves when the pond is back in view",
+      "name": "same-page #anchors scroll normally (no transition)",
       "ok": true,
       "detail": ""
     },
     {
-      "name": "follower is active on other pages",
+      "name": "Ctrl/⌘-click still opens a new tab, no transition",
       "ok": true,
       "detail": ""
     },
     {
-      "name": "no errors from the follower",
+      "name": "keyboard (Enter on a link) transitions too",
       "ok": true,
       "detail": ""
     },
     {
-      "name": "no follower for reduced motion",
+      "name": "no errors from transitions",
       "ok": true,
       "detail": ""
     },
     {
-      "name": "no follower for touch-only device",
+      "name": "if the transition script fails on arrival, the page shows itself (≤ 2.5s)",
       "ok": true,
-      "detail": ""
-    },
-    {
-      "name": "no follower when the visitor paused the animation",
-      "ok": true,
-      "detail": ""
+      "detail": "2497 ms"
     }
   ],
   "screenshots": [
@@ -428,9 +418,10 @@
   ],
   "scene": "koi",
   "activeFrameRate": 30,
-  "loaderRevealMs": 3918,
+  "loaderRevealMs": 4015,
+  "transitionMs": 1000,
   "summary": {
-    "total": 82,
+    "total": 80,
     "failed": 0
   }
 }

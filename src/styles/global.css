@@ -49,28 +49,6 @@ main {
   flex: 1 0 auto;
 }
 
-/* Page content sits above the koi follower (fixed, z-index 0), so it swims beneath the text. */
-body > header,
-body > main,
-body > footer {
-  position: relative;
-  z-index: 1;
-}
-
-.koi-follower {
-  position: fixed;
-  left: 0;
-  top: 0;
-  z-index: 0;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 500ms ease-out;
-  will-change: transform;
-}
-
-.koi-follower.is-on {
-  opacity: 0.92;
-}
 
 main:focus {
   outline: none;
@@ -388,15 +366,6 @@ button {
       transform 600ms var(--ease-out);
   }
 
-  @view-transition {
-    navigation: auto;
-  }
-
-  ::view-transition-old(root),
-  ::view-transition-new(root) {
-    animation-duration: 220ms;
-    animation-timing-function: ease-out;
-  }
 }
 
 @keyframes enter {
@@ -404,4 +373,35 @@ button {
     opacity: 0;
     transform: translateY(6px);
   }
+}
+
+/* ---------- ASCII page transitions (src/scripts/transition.ts) ---------- */
+
+/* Arriving: plain background over the page from first paint until the burn takes over.
+   If the transition script never runs, it lifts itself after 2s. */
+html.is-arriving body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: var(--color-bg);
+  animation: ks-arrive-failsafe 0s 2s forwards;
+}
+
+@keyframes ks-arrive-failsafe {
+  to {
+    visibility: hidden;
+  }
+}
+
+.ks-wipe {
+  position: fixed;
+  inset: 0;
+  z-index: 301;
+  pointer-events: none;
+}
+
+/* while leaving, the cover also swallows stray clicks */
+.ks-wipe.is-cover {
+  pointer-events: auto;
 }

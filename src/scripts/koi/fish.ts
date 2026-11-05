@@ -1,6 +1,6 @@
 /**
  * A koi seen from directly above, drawn in characters. Pure: state, swimming, rasterisation.
- * Shared by the homepage pond (pond.ts) and the pointer follower (follower.ts).
+ * Used by the homepage pond (pond.ts).
  *
  * The body is a chain of points that follows the head's path ("follow the leader"),
  * so a koi bends through its turns instead of rotating like a rigid sprite. A

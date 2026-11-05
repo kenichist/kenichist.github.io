@@ -39,7 +39,10 @@ async function newPage(opts = {}, init = []) {
   const settle = () =>
     page
       .waitForFunction(
-        () => !document.documentElement.classList.contains('is-loading') && !document.querySelector('.loader.is-leaving, .loader.is-finale'),
+        () =>
+          !document.documentElement.classList.contains('is-loading') &&
+          !document.documentElement.classList.contains('is-arriving') &&
+          !document.querySelector('.loader.is-leaving, .loader.is-finale, .ks-wipe'),
         null,
         { timeout: 15000 },
       )
@@ -58,11 +61,20 @@ async function newPage(opts = {}, init = []) {
   return { ctx, page };
 }
 
+/** Click a link to another page and wait until the new page has arrived (transitions included). */
+async function clickNav(page, selector) {
+  const from = new URL(page.url()).pathname;
+  await Promise.all([page.waitForURL((u) => u.pathname !== from, { timeout: 15000 }), page.click(selector)]);
+  await page.waitForLoadState('load');
+  await page
+    .waitForFunction(() => !document.documentElement.classList.contains('is-arriving') && !document.querySelector('.ks-wipe'), null, { timeout: 15000 })
+    .catch(() => {});
+}
 const fieldState = (page) => page.evaluate(() => document.querySelector('[data-ascii-field]')?.dataset.state);
 /** Visible label only (the screen-reader suffix is checked separately). */
 const buttonText = (page) => page.evaluate(() => document.querySelector('[data-field-toggle] [data-label]')?.textContent.trim());
 const buttonName = (page) => page.evaluate(() => document.querySelector('[data-field-toggle]')?.textContent.replace(/[\[\]]/g, '').replace(/\s+/g, ' ').trim());
-/** Frames drawn by the hero field (not the koi follower or loader). */
+/** Frames drawn by the hero field (not the loader or page transitions). */
 async function rafRate(page, ms = 1000) {
   const read = () => page.evaluate(() => document.querySelector('[data-ascii-field]')?.__fieldFrames ?? 0);
   const a = await read();
@@ -311,8 +323,7 @@ for (const vp of VIEWPORTS) {
   await page.click('[data-field-toggle]');
   pass('explicit play overrides for this view', (await fieldState(page)) === 'active');
   // navigation still works
-  await page.click('a[href="/notes/"]');
-  await page.waitForLoadState('networkidle');
+  await clickNav(page, 'a[href="/notes/"]');
   pass('navigation works under reduced motion', page.url().endsWith('/notes/'));
   await ctx.close();
 }
@@ -340,8 +351,7 @@ for (const vp of VIEWPORTS) {
   const { ctx, page } = await newPage({}, [RAF_COUNTER]);
   await page.goto(BASE + '/', { waitUntil: 'networkidle' });
   for (let i = 0; i < 4; i++) {
-    await page.click('a.row >> nth=0');
-    await page.waitForLoadState('networkidle');
+    await clickNav(page, 'a.row >> nth=0');
     await page.goBack({ waitUntil: 'networkidle' });
   }
   await page.waitForTimeout(500);
@@ -349,8 +359,7 @@ for (const vp of VIEWPORTS) {
   pass('after repeated back/forward the field runs one loop', rateOk(rate), `${rate.toFixed(1)}/s`);
   await page.evaluate(() => window.scrollTo(0, 900));
   await page.waitForTimeout(200);
-  await page.click('a.row >> nth=1');
-  await page.waitForLoadState('networkidle');
+  await clickNav(page, 'a.row >> nth=1');
   await page.goBack({ waitUntil: 'networkidle' });
   await page.waitForTimeout(400);
   const y = await page.evaluate(() => window.scrollY);
@@ -480,8 +489,7 @@ if (LIVE) {
   pass('page is revealed only after load, font, and hero field are ready', after.fontLoaded && after.complete && after.field, `${revealMs} ms; ${JSON.stringify(after)}`);
   pass('finale ran: focus → fill → burn, then the loader removed itself', seen.focus && seen.finale && seen.burning, JSON.stringify(seen));
   report.loaderRevealMs = revealMs;
-  await page.click('a[href="/notes/"]');
-  await page.waitForLoadState('domcontentloaded');
+  await clickNav(page, 'a[href="/notes/"]');
   pass('internal navigation skips the loader', !(await page.evaluate(() => document.documentElement.classList.contains('is-loading'))));
   await page.reload({ waitUntil: 'commit' });
   await page.waitForTimeout(100);
@@ -521,64 +529,47 @@ if (LIVE) {
   await fs.close();
 }
 
-/* ---------- 13. koi follower ---------- */
-if (scene === 'koi') {
+/* ---------- 13. ASCII page transitions ---------- */
+{
   const { ctx, page } = await newPage();
   await page.goto(BASE + '/', { waitUntil: 'networkidle' });
-  await page.mouse.move(700, 500);
-  await page.mouse.move(900, 600, { steps: 10 });
-  await page.waitForTimeout(500);
-  const on = () => page.evaluate(() => document.querySelector('.koi-follower')?.classList.contains('is-on') ?? false);
-  pass('follower stays hidden while the pond is in view', !(await on()));
-  await page.mouse.wheel(0, 900);
-  await page.waitForTimeout(700);
-  pass('follower appears once the pond scrolls out of view', await on());
-  for (const [x, y] of [[400, 300], [900, 420], [600, 650]]) {
-    await page.mouse.move(x, y, { steps: 25 });
-    await page.waitForTimeout(700);
-  }
-  await page.waitForTimeout(1800);
-  const d = await page.evaluate(() => {
-    const el = document.querySelector('.koi-follower');
-    const m = /translate3d\(([-\d.]+)px, ([-\d.]+)px/.exec(el.style.transform);
-    const r = el.getBoundingClientRect();
-    return m ? Math.hypot(Number(m[1]) + r.width / 2 - 600, Number(m[2]) + r.height / 2 - 650) : -1;
-  });
-  pass('follower catches up and circles the pointer (within ~120px)', d >= 0 && d < 120, `${Math.round(d)}px`);
-  const layer = await page.evaluate(() => ({
-    z: getComputedStyle(document.querySelector('.koi-follower')).zIndex,
-    main: getComputedStyle(document.querySelector('main')).zIndex,
-    pe: getComputedStyle(document.querySelector('.koi-follower')).pointerEvents,
-    hidden: document.querySelector('.koi-follower').getAttribute('aria-hidden'),
-  }));
-  pass('follower swims beneath the text, never takes clicks, hidden from AT', layer.z === '0' && layer.main === '1' && layer.pe === 'none' && layer.hidden === 'true', JSON.stringify(layer));
-  await page.mouse.wheel(0, -3000);
-  await page.waitForTimeout(800);
-  pass('follower leaves when the pond is back in view', !(await on()));
-  await page.evaluate(() => document.querySelector('a[href="/notes/"]').click());
-  await page.waitForLoadState('networkidle');
-  await page.mouse.move(500, 400, { steps: 5 });
-  await page.mouse.move(800, 500, { steps: 20 });
-  await page.waitForTimeout(900);
-  pass('follower is active on other pages', await on());
-  pass('no errors from the follower', page.__errors.length === 0, page.__errors.join(' | '));
+  const t0 = Date.now();
+  const clicked = page.click('a[href="/notes/"]');
+  await page.waitForTimeout(120);
+  const covering = await page.evaluate(() => !!document.querySelector('.ks-wipe.is-cover'));
+  pass('clicking a link to another page starts the ASCII cover', covering);
+  await clicked;
+  await page.waitForURL('**/notes/', { timeout: 10000 });
+  const arrived = await page.evaluate(() => document.documentElement.classList.contains('is-arriving') || !!document.querySelector('.ks-wipe'));
+  await page.waitForFunction(() => !document.documentElement.classList.contains('is-arriving') && !document.querySelector('.ks-wipe'), null, { timeout: 10000 });
+  const total = Date.now() - t0;
+  pass('the next page arrives covered and burns open, then cleans up', arrived && total < 2500, `${total} ms click → revealed`);
+  report.transitionMs = total;
+  await page.goBack({ waitUntil: 'load' });
+  await page.waitForTimeout(300);
+  pass('back button returns without a cover', (await page.evaluate(() => document.querySelectorAll('.ks-wipe').length)) === 0);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.click('a[href="#contact"]');
+  await page.waitForTimeout(150);
+  pass('same-page #anchors scroll normally (no transition)', (await page.evaluate(() => document.querySelectorAll('.ks-wipe').length === 0 && location.pathname === '/')));
+  const [tab] = await Promise.all([ctx.waitForEvent('page', { timeout: 4000 }).catch(() => null), page.click('a[href="/notes/"]', { modifiers: ['Control'] })]);
+  await page.waitForTimeout(200);
+  pass('Ctrl/⌘-click still opens a new tab, no transition', !!tab && (await page.evaluate(() => document.querySelectorAll('.ks-wipe').length)) === 0);
+  if (tab) await tab.close();
+  await page.focus('a.row >> nth=0');
+  await Promise.all([page.waitForURL('**/work/**', { timeout: 10000 }), page.keyboard.press('Enter')]);
+  pass('keyboard (Enter on a link) transitions too', page.url().includes('/work/'));
+  pass('no errors from transitions', page.__errors.length === 0, page.__errors.join(' | '));
   await ctx.close();
-  for (const [label, opts] of [
-    ['reduced motion', { reducedMotion: 'reduce' }],
-    ['touch-only device', { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true }],
-  ]) {
-    const x = await newPage(opts);
-    await x.page.goto(BASE + '/notes/', { waitUntil: 'networkidle' });
-    await x.page.waitForTimeout(500);
-    pass(`no follower for ${label}`, !(await x.page.evaluate(() => !!document.querySelector('.koi-follower'))));
-    await x.ctx.close();
-  }
-  const paused = await newPage({}, [() => localStorage.setItem('ks-field-paused', '1')]);
-  await paused.page.goto(BASE + '/notes/', { waitUntil: 'networkidle' });
-  await paused.page.mouse.move(600, 400, { steps: 10 });
-  await paused.page.waitForTimeout(500);
-  pass('no follower when the visitor paused the animation', !(await paused.page.evaluate(() => !!document.querySelector('.koi-follower'))));
-  await paused.ctx.close();
+
+  const fs = await newPage();
+  await fs.page.goto(BASE + '/', { waitUntil: 'networkidle' });
+  await fs.ctx.route('**/_astro/Base.astro*.js', (r) => r.abort());
+  const f0 = Date.now();
+  await Promise.all([fs.page.waitForURL('**/notes/', { timeout: 10000 }), fs.page.click('a[href="/notes/"]')]);
+  await fs.page.waitForFunction(() => getComputedStyle(document.body, '::after').visibility === 'hidden' || !document.documentElement.classList.contains('is-arriving'), null, { timeout: 8000 });
+  pass('if the transition script fails on arrival, the page shows itself (≤ 2.5s)', Date.now() - f0 < 3500, `${Date.now() - f0} ms`);
+  await fs.ctx.close();
 }
 
 await browser.close();

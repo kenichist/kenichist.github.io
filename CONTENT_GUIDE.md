@@ -74,8 +74,8 @@ routes.
 
 `src/content/site.ts` → `HERO`:
 
-- `'koi'` (current): a koi pond. One koi follows the pointer when the pond is off-screen and on other pages.
-- `'field'`: the wind field, or a video clip as described below. There's no follower in this mode.
+- `'koi'` (current): a koi pond.
+- `'field'`: the wind field, or a video clip as described below.
 
 ## Hero artwork from a video
 
