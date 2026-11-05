@@ -1,0 +1,19 @@
+---
+interface Props {
+  href: string;
+  label: string;
+}
+const { href, label } = Astro.props;
+---
+
+<a class="action back" href={href}>
+  <span aria-hidden="true">[</span>
+  <span><span class="glyph glyph-left" aria-hidden="true">←</span> {label}</span>
+  <span aria-hidden="true">]</span>
+</a>
+
+<style>
+  .back {
+    font-size: var(--step--1);
+  }
+</style>

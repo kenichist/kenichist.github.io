@@ -1,0 +1,71 @@
+---
+import Base from '../layouts/Base.astro';
+import Hero from '../components/Hero.astro';
+import EntryList from '../components/EntryList.astro';
+import { content } from '../lib/site-content';
+
+const work = content.projects.slice(0, 4).map((p) => ({ href: `/work/${p.slug}/`, title: p.title }));
+const notes = content.notes.slice(0, 2).map((n) => ({ href: `/notes/${n.slug}/`, title: n.title }));
+---
+
+<Base>
+  <Hero />
+
+  <section id="work" class="wrap section" aria-labelledby="work-heading" data-reveal tabindex="-1">
+    <div class="section-head">
+      <h2 id="work-heading" class="label">selected work</h2>
+      {
+        content.projects.length > 4 && (
+          <a class="action small" href="/work/">
+            <span aria-hidden="true">[</span>all work<span aria-hidden="true">]</span>
+          </a>
+        )
+      }
+    </div>
+    {
+      work.length > 0 ? (
+        <EntryList items={work} label="Selected work" />
+      ) : (
+        <p class="empty">Project write-ups are in progress.</p>
+      )
+    }
+  </section>
+
+  <section id="notes" class="wrap section" aria-labelledby="notes-heading" data-reveal>
+    <div class="notes">
+    <div class="section-head">
+      <h2 id="notes-heading" class="label">notes</h2>
+      {
+        content.notes.length > 0 && (
+          <a class="action small" href="/notes/">
+            <span aria-hidden="true">[</span>all notes<span aria-hidden="true">]</span>
+          </a>
+        )
+      }
+    </div>
+    {notes.length > 0 ? <EntryList items={notes} size="small" label="Recent notes" /> : <p class="empty">No notes published yet.</p>}
+    </div>
+  </section>
+</Base>
+
+<style>
+  #work:focus {
+    outline: none;
+  }
+
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-4);
+    margin-bottom: clamp(0.25rem, 0.1rem + 0.5vw, 0.75rem);
+  }
+
+  .action.small {
+    font-size: var(--step--1);
+  }
+
+  .notes {
+    max-width: 52rem;
+  }
+</style>

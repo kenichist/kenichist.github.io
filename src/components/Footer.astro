@@ -1,0 +1,99 @@
+---
+import { content } from '../lib/site-content';
+const links = content.contactLinks;
+const year = new Date().getFullYear();
+---
+
+<footer id="contact" class="wrap" tabindex="-1" aria-labelledby="contact-heading">
+  <div class="site-footer">
+  <h2 id="contact-heading" class="label">contact</h2>
+  {
+    links.length > 0 ? (
+      <ul class="contact-links">
+        {links.map((l) => (
+          <li>
+            <a
+              class="bracketed"
+              href={l.href}
+              {...(l.href.startsWith('http') ? { rel: 'me noopener', target: '_blank' } : {})}
+            >
+              {l.label}
+              {l.href.startsWith('http') && <span class="sr-only"> (opens in a new tab)</span>}
+            </a>
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <p class="contact-empty">Contact links haven't been added yet.</p>
+    )
+  }
+  <p class="colophon">
+    <span>{content.profile.name}</span>
+    <span aria-hidden="true">·</span>
+    <span>{year}</span>
+  </p>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    margin-top: var(--section-gap);
+    padding-top: var(--space-7);
+    padding-bottom: clamp(2rem, 1rem + 3vw, 3.5rem);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'label label'
+      'links colophon';
+    align-items: end;
+    gap: var(--space-5) var(--space-6);
+    border-top: 1px solid var(--color-rule);
+  }
+
+  footer:focus {
+    outline: none;
+  }
+
+  h2 {
+    grid-area: label;
+  }
+
+  .contact-links,
+  .contact-empty {
+    grid-area: links;
+  }
+
+  .contact-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) clamp(1.5rem, 1rem + 2vw, 3rem);
+    font-size: var(--step-1);
+    letter-spacing: var(--track-nav);
+  }
+
+  .contact-links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  .contact-empty {
+    color: var(--color-text-2);
+  }
+
+  .colophon {
+    grid-area: colophon;
+    display: flex;
+    gap: 1ch;
+    font-size: var(--step--1);
+    letter-spacing: var(--track-nav);
+    color: var(--color-text-2);
+  }
+
+  @media (max-width: 40rem) {
+    .site-footer {
+      grid-template-columns: 1fr;
+      grid-template-areas: 'label' 'links' 'colophon';
+    }
+  }
+</style>

@@ -1,0 +1,9 @@
+node_modules/
+dist/
+dist-live/
+.astro/
+*.log
+.DS_Store
+
+# local deliverable archive
+*.zip

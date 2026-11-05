@@ -1,0 +1,97 @@
+---
+interface Props {
+  current?: 'work' | 'notes';
+  /** Marks the preview once, inside the banner landmark. */
+  demo?: boolean;
+}
+const { current, demo = false } = Astro.props;
+const isHome = Astro.url.pathname === '/';
+const links = [
+  { key: 'work', label: 'work', href: isHome ? '#work' : '/#work' },
+  { key: 'notes', label: 'notes', href: '/notes/' },
+  { key: 'contact', label: 'contact', href: '#contact' },
+] as const;
+---
+
+<header class="site-header wrap">
+  {
+    demo && (
+      <p class="demo-note">
+        demo preview <span aria-hidden="true">·</span> placeholder entries
+      </p>
+    )
+  }
+  <a class="brand bracketed" href="/" aria-current={isHome ? 'page' : undefined}>
+    kenichi /<span class="sr-only"> home</span>
+  </a>
+  <nav aria-label="Primary">
+    <ul>
+      {
+        links.map((l) => (
+          <li>
+            <a class="bracketed" href={l.href} aria-current={current === l.key ? 'page' : undefined}>
+              {l.label}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </nav>
+</header>
+
+<style>
+  .site-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-6);
+    padding-top: clamp(0.75rem, 0.4rem + 1.2vw, 1.5rem);
+    font-size: var(--step-1);
+    letter-spacing: var(--track-nav);
+  }
+
+  .demo-note {
+    flex-basis: 100%;
+    padding-top: var(--space-1);
+    font-size: var(--step--1);
+    letter-spacing: var(--track-nav);
+    line-height: 1.5;
+    color: var(--color-text-2);
+  }
+
+  .brand {
+    color: var(--color-text);
+  }
+
+  /* On the homepage the brand is the current page; keep it quiet, no brackets. */
+  .brand[aria-current]::before,
+  .brand[aria-current]::after {
+    display: none;
+  }
+
+  ul {
+    display: flex;
+    gap: clamp(1.5rem, 0.8rem + 2.4vw, 3.25rem);
+  }
+
+  a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--color-text);
+  }
+
+  nav a:hover,
+  nav a:focus-visible {
+    color: var(--color-text);
+  }
+
+  /* The brackets are absolutely positioned, so the edge items need a little
+     room inside the gutter on the narrowest screens. */
+  @media (max-width: 360px) {
+    ul {
+      gap: 1.25rem;
+    }
+  }
+</style>

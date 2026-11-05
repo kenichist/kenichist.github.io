@@ -1,0 +1,108 @@
+---
+/** Previous / next among published entries. */
+interface Link {
+  href: string;
+  title: string;
+}
+interface Props {
+  prev?: Link;
+  next?: Link;
+  label: string;
+}
+const { prev, next, label } = Astro.props;
+---
+
+{
+  (prev || next) && (
+    <nav class="pager" aria-label={label}>
+      {prev ? (
+        <a class="pager-link prev" href={prev.href} rel="prev">
+          <span class="label">
+            <span class="glyph" aria-hidden="true">←</span> previous
+          </span>
+          <span class="pager-title">{prev.title}</span>
+        </a>
+      ) : (
+        <span />
+      )}
+      {next && (
+        <a class="pager-link next" href={next.href} rel="next">
+          <span class="label">
+            next <span class="glyph" aria-hidden="true">→</span>
+          </span>
+          <span class="pager-title">{next.title}</span>
+        </a>
+      )}
+    </nav>
+  )
+}
+
+<style>
+  .pager {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-6);
+    margin-top: var(--section-gap);
+    padding-top: var(--space-6);
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .pager-link {
+    display: grid;
+    gap: var(--space-2);
+    align-content: start;
+    padding-block: var(--space-2);
+    color: var(--color-text);
+  }
+
+  .next {
+    text-align: right;
+    justify-items: end;
+  }
+
+  .pager-title {
+    font-size: var(--step-1);
+    letter-spacing: 0.02em;
+    line-height: 1.4;
+    text-wrap: balance;
+    transition: color var(--dur-micro) ease-out;
+  }
+
+  .glyph {
+    display: inline-block;
+    transition: transform var(--dur-micro) var(--ease-out);
+  }
+
+  .prev:hover .glyph,
+  .prev:focus-visible .glyph {
+    transform: translateX(calc(-1 * var(--nudge)));
+  }
+
+  .next:hover .glyph,
+  .next:focus-visible .glyph {
+    transform: translateX(var(--nudge));
+  }
+
+  .pager-link:hover .pager-title,
+  .pager-link:focus-visible .pager-title {
+    text-decoration: underline;
+    text-decoration-color: var(--color-accent);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.3em;
+  }
+
+  @media (max-width: 34rem) {
+    .pager {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .pager > span:empty {
+      display: none;
+    }
+
+    .next {
+      text-align: left;
+      justify-items: start;
+    }
+  }
+</style>

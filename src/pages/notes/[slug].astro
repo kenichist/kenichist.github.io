@@ -1,0 +1,65 @@
+---
+import Base from '../../layouts/Base.astro';
+import BackLink from '../../components/BackLink.astro';
+import Pager from '../../components/Pager.astro';
+import { content } from '../../lib/site-content';
+import { formatDate, neighbours, paragraphs } from '../../lib/content';
+import type { Note } from '../../content/types';
+
+export function getStaticPaths() {
+  return content.notes.map((note, index) => ({ params: { slug: note.slug }, props: { note, index } }));
+}
+
+interface Props {
+  note: Note;
+  index: number;
+}
+const { note, index } = Astro.props;
+const date = formatDate(note.date);
+const { prev, next } = neighbours(content.notes, index);
+const toLink = (n?: Note) => (n ? { href: `/notes/${n.slug}/`, title: n.title } : undefined);
+---
+
+<Base title={note.title} description={note.summary} current="notes">
+  <article class="wrap page">
+    <BackLink href="/notes/" label="all notes" />
+    <header class="page-head">
+      <h1 class="page-title enter">{note.title}</h1>
+      {date && <p class="meta enter" style="--i: 1"><time datetime={note.date}>{date}</time></p>}
+    </header>
+    <div class="body reading">
+      {paragraphs(note.body).map((p) => <p>{p}</p>)}
+    </div>
+    <Pager prev={toLink(prev)} next={toLink(next)} label="More notes" />
+  </article>
+</Base>
+
+<style>
+  .page {
+    padding-top: clamp(3rem, 2rem + 4vw, 6rem);
+  }
+
+  .page-head {
+    margin-top: clamp(2.5rem, 2rem + 2vw, 4rem);
+    max-width: 56rem;
+  }
+
+  .page-title {
+    font-size: var(--step-3);
+    letter-spacing: 0.02em;
+    line-height: 1.15;
+  }
+
+  .meta {
+    margin-top: var(--space-4);
+    font-size: var(--step--1);
+    letter-spacing: var(--track-nav);
+    color: var(--color-text-2);
+  }
+
+  .body {
+    margin-top: clamp(3rem, 2rem + 3vw, 5rem);
+    display: grid;
+    gap: var(--space-5);
+  }
+</style>

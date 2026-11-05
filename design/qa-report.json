@@ -1,0 +1,354 @@
+{
+  "base": "http://127.0.0.1:4321",
+  "checks": [
+    {
+      "name": "no horizontal scroll at 320 across 8 routes",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal scroll at 390 across 8 routes",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal scroll at 768 across 8 routes",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal scroll at 1440 across 8 routes",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal scroll at 1920 across 8 routes",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal scroll at 1440-zoom200 across 8 routes",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "all internal links resolve (crawl)",
+      "ok": true,
+      "detail": "8 pages; "
+    },
+    {
+      "name": "no console errors on crawled pages",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "first Tab reaches skip link",
+      "ok": true,
+      "detail": "skip to content"
+    },
+    {
+      "name": "pause control is keyboard reachable",
+      "ok": true,
+      "detail": "skip to content → kenichi / home → work → notes → contact → [ explore work ↓ ] → [ pause the background animation ] → Project title 01 → → Project title 02 → → Project title 03 with a deliberately lon → Project title 04 → → [ all notes ] → Research note 01 → → Research note 02 →"
+    },
+    {
+      "name": "every focused element shows a visible focus ring",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "skip link moves focus to <main>",
+      "ok": true,
+      "detail": "main"
+    },
+    {
+      "name": "Space on control pauses",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Enter on control resumes",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "active field runs at a capped rate (~20/s)",
+      "ok": true,
+      "detail": "20.0 frames/s"
+    },
+    {
+      "name": "control label describes action while moving",
+      "ok": true,
+      "detail": "pause"
+    },
+    {
+      "name": "control accessible name is descriptive",
+      "ok": true,
+      "detail": "pause the background animation"
+    },
+    {
+      "name": "click settles the field",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "control offers resume after settle",
+      "ok": true,
+      "detail": "resume"
+    },
+    {
+      "name": "settled field schedules no frames",
+      "ok": true,
+      "detail": "0/s"
+    },
+    {
+      "name": "resume returns to active",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "resumed field schedules frames again",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "hidden tab → state hidden-tab",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "hidden tab schedules no frames",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "visible again → active",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "visibility does not override pause",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "paused field schedules no frames",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "scrolled away → offscreen",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "offscreen schedules no frames",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "scrolled back → active",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "after resizes the canvas matches its box",
+      "ok": true,
+      "detail": "{\"surface\":714,\"canvas\":714}"
+    },
+    {
+      "name": "after resizes there is still one loop (rate unchanged)",
+      "ok": true,
+      "detail": "21.0/s"
+    },
+    {
+      "name": "no console errors during motion lifecycle",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "pause persists across reload",
+      "ok": true,
+      "detail": "resume"
+    },
+    {
+      "name": "resume persists across reload",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "control works when storage throws",
+      "ok": true,
+      "detail": "user-paused → active "
+    },
+    {
+      "name": "reduced motion starts static",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "reduced motion schedules no frames",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "reduced motion control offers play",
+      "ok": true,
+      "detail": "play"
+    },
+    {
+      "name": "reduced motion disables entrance animation",
+      "ok": true,
+      "detail": "none"
+    },
+    {
+      "name": "reduced motion disables scroll reveals",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "click does nothing under reduced motion",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "explicit play overrides for this view",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "navigation works under reduced motion",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no-JS shows static text artwork",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no-JS hides the (non-functional) control",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no-JS content is visible",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "after repeated back/forward the field runs one loop",
+      "ok": true,
+      "detail": "20.0/s"
+    },
+    {
+      "name": "back restores scroll position",
+      "ok": true,
+      "detail": "scrollY=900"
+    },
+    {
+      "name": "no errors during navigation",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "demo pages are noindex",
+      "ok": true,
+      "detail": "noindex, nofollow"
+    },
+    {
+      "name": "demo preview is marked exactly once",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no dead href=\"#\" links",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "demo robots.txt disallows crawling",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "demo sitemap lists nothing",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "draft fixture has no route",
+      "ok": true,
+      "detail": "404"
+    },
+    {
+      "name": "live: indexable, no demo marker",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "live: no fixture rows",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "live: intentional empty states",
+      "ok": true,
+      "detail": "Project write-ups are in progress. | No notes published yet. | Contact links haven't been added yet."
+    },
+    {
+      "name": "live: no placeholder intro or dead CTA",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "live: fixture routes are not generated",
+      "ok": true,
+      "detail": "404"
+    },
+    {
+      "name": "axe: no WCAG A/AA or best-practice violations at 1440px",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe: no WCAG A/AA or best-practice violations at 390px",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "touch targets ≥44px tall (≥24px wide) at 390px",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tap settles the field on touch",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "field does not capture touch scrolling",
+      "ok": true,
+      "detail": "auto"
+    }
+  ],
+  "screenshots": [
+    "home-320.png",
+    "home-390.png",
+    "home-390-full.png",
+    "work-project-03-390.png",
+    "notes-390.png",
+    "home-768.png",
+    "home-1440.png",
+    "home-1440-full.png",
+    "work-project-03-1440.png",
+    "notes-1440.png",
+    "home-1920.png",
+    "home-1440-zoom200.png"
+  ],
+  "activeFrameRate": 20,
+  "summary": {
+    "total": 66,
+    "failed": 0
+  }
+}

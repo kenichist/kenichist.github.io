@@ -1,0 +1,71 @@
+/* Design tokens — see DESIGN.md for rationale and contrast measurements. */
+
+@font-face {
+  font-family: 'Iosevka Web';
+  src: url('/fonts/iosevka-subset-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  /* subset: Basic Latin, Latin-1, general punctuation, ← ↑ → ↓ ↗ */
+  unicode-range: U+0020-007E, U+00A0-00FF, U+2010-2027, U+2030-203A, U+2190-2193, U+2197, U+2122, U+20AC;
+}
+
+:root {
+  color-scheme: dark;
+
+  /* colour — base palette from the approved brief */
+  --color-bg: #16121e; /* main aubergine */
+  --color-bg-deep: #100d16; /* tonal depth */
+  --color-bg-lift: #1b1625; /* hover wash on rows */
+  --color-text: #ded9e4; /* 13.3:1 on bg */
+  --color-text-2: #aba0b6; /* 7.4:1 on bg */
+  --color-accent: #8f779c; /* decorative ASCII + rules; 4.6:1, never below 14px text */
+  --color-accent-text: #a58fb2; /* mauve for small labels; 6.3:1 */
+  --color-rule: #352b40; /* nonessential separators */
+  --color-focus: #c9b8d6; /* focus ring; 9.9:1 */
+  --color-selection: #3a2e47;
+  --color-bg-glow: rgb(36 28 48 / 0.55); /* faint lift behind the hero */
+
+  /* ASCII field brightness tiers (dust → seed heads) */
+  --field-0: rgb(143 119 156 / 0.7);
+  --field-1: rgb(171 160 182 / 0.8);
+  --field-2: rgb(196 186 206 / 0.92);
+  --field-3: rgb(214 205 222 / 0.95);
+
+  /* type — one mono family everywhere */
+  --font-mono: 'Iosevka Web', ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  --step--1: clamp(0.8125rem, 0.78rem + 0.15vw, 0.9375rem); /* 13→15  labels, meta */
+  --step-0: clamp(1rem, 0.95rem + 0.22vw, 1.125rem); /* 16→18  body */
+  --step-1: clamp(1.0625rem, 0.97rem + 0.42vw, 1.3125rem); /* 17→21  nav, intro, note rows */
+  --step-2: clamp(1.25rem, 1.02rem + 0.95vw, 2rem); /* 20→32  project rows */
+  --step-3: clamp(1.75rem, 1.3rem + 1.9vw, 2.75rem); /* 28→44  page titles */
+  --step-4: clamp(2.125rem, 1.2rem + 2.9vw, 4rem); /* 34→64  hero name */
+
+  --track-label: 0.16em; /* uppercase labels */
+  --track-nav: 0.08em;
+  --track-display: 0.045em;
+  --track-body: 0.02em;
+
+  --leading-tight: 1.15;
+  --leading-body: 1.65;
+  --measure: 66ch;
+
+  /* space */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --gutter: clamp(1.25rem, 5vw, 6rem); /* 20 → 72 → 96 */
+  --max-width: 80rem; /* 1280 */
+  --section-gap: clamp(6rem, 3.6rem + 6.2vw, 10rem); /* 96 → 160 */
+
+  /* motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-micro: 150ms;
+  --dur-enter: 520ms;
+  --nudge: 3px;
+}

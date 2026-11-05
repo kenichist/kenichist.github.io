@@ -1,0 +1,31 @@
+---
+import Base from '../../layouts/Base.astro';
+import EntryList from '../../components/EntryList.astro';
+import { content } from '../../lib/site-content';
+
+const items = content.projects.map((p) => ({ href: `/work/${p.slug}/`, title: p.title, meta: p.summary }));
+---
+
+<Base title="Work" current="work">
+  <section class="wrap page" aria-labelledby="page-title">
+    <h1 id="page-title" class="page-title enter">work</h1>
+    <div class="list">
+      {items.length > 0 ? <EntryList items={items} label="All work" /> : <p class="empty">Project write-ups are in progress.</p>}
+    </div>
+  </section>
+</Base>
+
+<style>
+  .page {
+    padding-top: clamp(4rem, 2.5rem + 5vw, 8rem);
+  }
+
+  .page-title {
+    font-size: var(--step-3);
+    letter-spacing: 0.02em;
+  }
+
+  .list {
+    margin-top: clamp(2rem, 1.5rem + 2vw, 3.5rem);
+  }
+</style>

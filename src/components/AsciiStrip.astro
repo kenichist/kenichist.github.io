@@ -1,0 +1,15 @@
+---
+import { renderTextFrame } from '../scripts/ascii/field';
+/** A short static band of the field — decorative texture for inner pages. No JS. */
+interface Props {
+  seed?: number;
+  cols?: number;
+  rows?: number;
+}
+const { seed = 7, cols = 96, rows = 7 } = Astro.props;
+// Sample the lower band of a taller frame so the strip is mostly stems and tips.
+const full = renderTextFrame(cols, rows * 3, seed).split('\n');
+const lines = full.slice(rows, rows * 2 + 1).join('\n');
+---
+
+<pre class="ascii-strip" aria-hidden="true">{lines}</pre>

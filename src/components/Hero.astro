@@ -1,0 +1,89 @@
+---
+import AsciiField from './AsciiField.astro';
+import { content } from '../lib/site-content';
+
+const { name, role, intro } = content.profile;
+// Break the name before the last word: "Kenichi Shawn" / "Tanzil".
+const split = name.lastIndexOf(' ');
+const nameLines = split > 0 ? [name.slice(0, split), name.slice(split + 1)] : [name];
+---
+
+<section class="hero wrap" aria-labelledby="hero-name">
+  <div class="hero-text">
+    <p class="label role enter" style="--i: 0">{role}</p>
+    <h1 id="hero-name" class="name enter" style="--i: 1">
+      {nameLines.map((line, i) => <span class="name-line">{line}{i < nameLines.length - 1 ? ' ' : ''}</span>)}
+    </h1>
+    {intro && <p class="intro enter" style="--i: 2">{intro}</p>}
+    {
+      content.projects.length > 0 && (
+        <a class="action cta enter" style="--i: 3" href="#work">
+          <span aria-hidden="true">[</span>
+          <span>
+            explore work <span class="glyph glyph-down" aria-hidden="true">↓</span>
+          </span>
+          <span aria-hidden="true">]</span>
+        </a>
+      )
+    }
+  </div>
+  <div class="hero-art enter" style="--i: 2">
+    <AsciiField />
+  </div>
+</section>
+
+<style>
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+    align-items: center;
+    column-gap: clamp(2rem, 1rem + 3vw, 4.5rem);
+    padding-top: clamp(4.5rem, 2rem + 8vw, 10rem);
+  }
+
+  .role {
+    margin-bottom: clamp(1.25rem, 0.9rem + 1vw, 2rem);
+    font-size: clamp(0.875rem, 0.8rem + 0.3vw, 1.0625rem);
+  }
+
+  .name {
+    font-size: var(--step-4);
+    letter-spacing: var(--track-display);
+    line-height: 1.08;
+    color: var(--color-text);
+  }
+
+  .name-line {
+    display: block;
+  }
+
+  .intro {
+    max-width: 46ch;
+    margin-top: clamp(1.5rem, 1rem + 1.4vw, 2.5rem);
+    font-size: var(--step-1);
+    line-height: 1.7;
+    letter-spacing: 0.03em;
+    color: var(--color-text);
+  }
+
+  .cta {
+    margin-top: clamp(1.75rem, 1.2rem + 1.6vw, 3rem);
+    font-size: var(--step-1);
+  }
+
+  .hero-art {
+    /* the field breathes past the text column's right edge, like the approved comp */
+    margin-inline-end: calc(-0.5 * var(--gutter));
+  }
+
+  @media (max-width: 59.99rem) {
+    .hero {
+      grid-template-columns: minmax(0, 1fr);
+      row-gap: clamp(2.5rem, 2rem + 3vw, 4rem);
+    }
+
+    .hero-art {
+      margin-inline-end: 0;
+    }
+  }
+</style>

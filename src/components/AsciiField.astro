@@ -1,0 +1,151 @@
+---
+import { DEFAULT_SEED, renderTextFrame } from '../scripts/ascii/field';
+
+/**
+ * Hero character field. Server-renders a seeded still frame as text (shown
+ * without JS, and until the canvas is ready), then the canvas takes over with
+ * the same grid, so the hand-off doesn't jump.
+ *
+ * Grid sizes must match --field-cols / --field-rows in the CSS below.
+ */
+interface Props {
+  seed?: number;
+}
+const { seed = DEFAULT_SEED } = Astro.props;
+const wide = renderTextFrame(70, 21, seed);
+const narrow = renderTextFrame(46, 18, seed);
+---
+
+<div class="field" data-ascii-field data-seed={seed} data-state="static">
+  <div class="field-surface" data-field-surface aria-hidden="true">
+    <pre class="field-text field-text-wide">{wide}</pre>
+    <pre class="field-text field-text-narrow">{narrow}</pre>
+  </div>
+  <div class="field-controls">
+    <p class="field-hint" data-field-hint aria-hidden="true"></p>
+    <button type="button" class="field-toggle" data-field-toggle hidden>
+      <span aria-hidden="true">[</span>
+      <span data-label>pause</span><span class="sr-only" data-sr> the background animation</span>
+      <span aria-hidden="true">]</span>
+    </button>
+  </div>
+</div>
+
+<script>
+  import { enhanceFields } from '../scripts/ascii/controller';
+  enhanceFields();
+</script>
+
+<style>
+  .field {
+    --field-cols: 70;
+    --field-rows: 21;
+    /* 0.78em cell width × 70 cols; 1.28em row height × 21 rows */
+    min-width: 0;
+  }
+
+  .field-surface {
+    position: relative;
+    container-type: inline-size;
+    /* height is derived from width so the grid never reflows: rows × 1.28em,
+       where 1em = width / (cols × 0.78) */
+    aspect-ratio: calc(var(--field-cols) * 0.78) / calc(var(--field-rows) * 1.28);
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .field-text {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    font-family: inherit;
+    font-size: calc(100cqi / (var(--field-cols) * 0.78));
+    line-height: 1.28;
+    letter-spacing: 0.28em;
+    white-space: pre;
+    color: var(--color-accent);
+    transition: opacity 360ms ease-out;
+  }
+
+  .field-text-narrow {
+    display: none;
+  }
+
+  /* canvas is inserted by the controller */
+  .field-surface :global(.field-canvas) {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: block;
+    opacity: 0;
+    transition: opacity 360ms ease-out;
+  }
+
+  .field:global(.is-live) .field-text {
+    opacity: 0;
+  }
+
+  .field:global(.is-live) .field-surface :global(.field-canvas) {
+    opacity: 1;
+  }
+
+  .field-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    min-height: 44px;
+    margin-top: var(--space-3);
+    padding-inline: 7% 3%;
+    font-size: var(--step--1);
+    letter-spacing: var(--track-nav);
+  }
+
+  .field-hint {
+    color: var(--color-text-2);
+  }
+
+  .field-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 1ch;
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0 var(--space-1);
+    margin-inline-start: auto;
+    background: none;
+    border: 0;
+    cursor: pointer;
+    color: var(--color-accent-text);
+    transition: color var(--dur-micro) ease-out;
+  }
+
+  .field-toggle[hidden] {
+    display: none;
+  }
+
+  .field-toggle:hover,
+  .field-toggle:focus-visible {
+    color: var(--color-text);
+  }
+
+  @media (max-width: 39.99rem) {
+    .field {
+      --field-cols: 46;
+      --field-rows: 18;
+    }
+
+    .field-text-wide {
+      display: none;
+    }
+
+    .field-text-narrow {
+      display: block;
+    }
+
+    .field-controls {
+      padding-inline: 0;
+    }
+  }
+</style>

@@ -1,0 +1,39 @@
+---
+import Base from '../layouts/Base.astro';
+import AsciiStrip from '../components/AsciiStrip.astro';
+---
+
+<Base title="Not found" noindex>
+  <section class="wrap page" aria-labelledby="page-title">
+    <AsciiStrip seed={404} rows={6} />
+    <p class="label">404</p>
+    <h1 id="page-title" class="page-title">Nothing grows at this address.</h1>
+    <p class="muted">The page may have moved, or the link may be mistyped.</p>
+    <a class="action" href="/">
+      <span aria-hidden="true">[</span>
+      <span><span class="glyph glyph-left" aria-hidden="true">←</span> back home</span>
+      <span aria-hidden="true">]</span>
+    </a>
+  </section>
+</Base>
+
+<style>
+  .page {
+    padding-top: clamp(4rem, 2.5rem + 6vw, 9rem);
+    display: grid;
+    gap: var(--space-5);
+    justify-items: start;
+  }
+
+  .page :global(.ascii-strip) {
+    width: 100%;
+    max-width: 48rem;
+    margin-bottom: var(--space-6);
+  }
+
+  .page-title {
+    font-size: var(--step-3);
+    letter-spacing: 0.02em;
+    max-width: 22ch;
+  }
+</style>

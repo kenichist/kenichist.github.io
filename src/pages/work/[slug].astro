@@ -1,0 +1,158 @@
+---
+import Base from '../../layouts/Base.astro';
+import AsciiStrip from '../../components/AsciiStrip.astro';
+import BackLink from '../../components/BackLink.astro';
+import Pager from '../../components/Pager.astro';
+import { content } from '../../lib/site-content';
+import { neighbours, projectLinks, projectSections } from '../../lib/content';
+import type { Project } from '../../content/types';
+
+export function getStaticPaths() {
+  return content.projects.map((project, index) => ({ params: { slug: project.slug }, props: { project, index } }));
+}
+
+interface Props {
+  project: Project;
+  index: number;
+}
+const { project, index } = Astro.props;
+const sections = projectSections(project);
+const links = projectLinks(project);
+const tech = (project.technologies ?? []).filter((t) => t.trim());
+const { prev, next } = neighbours(content.projects, index);
+const toLink = (p?: Project) => (p ? { href: `/work/${p.slug}/`, title: p.title } : undefined);
+---
+
+<Base title={project.title} description={project.summary} current="work">
+  <article class="wrap page">
+    <BackLink href="/#work" label="back to work" />
+
+    <header class="page-head">
+      <AsciiStrip seed={31 + index * 17} />
+      <h1 class="page-title enter" style="--i: 0">{project.title}</h1>
+      {project.summary && <p class="overview enter" style="--i: 1">{project.summary}</p>}
+      {
+        tech.length > 0 && (
+          <p class="tech enter" style="--i: 2">
+            <span class="sr-only">Technologies: </span>
+            {tech.join(' · ')}
+          </p>
+        )
+      }
+    </header>
+
+    <div class="body reading">
+      {
+        sections.map((s) => (
+          <section aria-labelledby={`s-${s.id}`}>
+            <h2 id={`s-${s.id}`} class="label">
+              {s.heading}
+            </h2>
+            {s.text && <p>{s.text}</p>}
+            {s.items && (
+              <ul class="contributions">
+                {s.items.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            )}
+          </section>
+        ))
+      }
+
+      {
+        links.length > 0 && (
+          <ul class="external">
+            {links.map((l) => (
+              <li>
+                <a class="action" href={l.href} rel="noopener" target="_blank">
+                  <span aria-hidden="true">[</span>
+                  <span>
+                    {l.label} <span class="glyph glyph-right" aria-hidden="true">↗</span>
+                    <span class="sr-only"> (opens in a new tab)</span>
+                  </span>
+                  <span aria-hidden="true">]</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        )
+      }
+    </div>
+
+    <Pager prev={toLink(prev)} next={toLink(next)} label="More work" />
+  </article>
+</Base>
+
+<style>
+  .page {
+    padding-top: clamp(3rem, 2rem + 4vw, 6rem);
+  }
+
+  .page-head {
+    margin-top: clamp(2.5rem, 2rem + 2vw, 4rem);
+    max-width: 56rem;
+  }
+
+  .page-head :global(.ascii-strip) {
+    margin-bottom: clamp(1.5rem, 1rem + 2vw, 3rem);
+  }
+
+  .page-title {
+    font-size: var(--step-3);
+    letter-spacing: 0.02em;
+    line-height: 1.15;
+  }
+
+  .overview {
+    max-width: var(--measure);
+    margin-top: var(--space-5);
+    font-size: var(--step-1);
+    color: var(--color-text);
+  }
+
+  .tech {
+    margin-top: var(--space-4);
+    font-size: var(--step--1);
+    letter-spacing: var(--track-nav);
+    color: var(--color-text-2);
+  }
+
+  .body {
+    margin-top: clamp(4rem, 3rem + 4vw, 7rem);
+    display: grid;
+    gap: clamp(2.5rem, 2rem + 2vw, 4rem);
+  }
+
+  .body p,
+  .body li {
+    color: var(--color-text);
+  }
+
+  .body h2 {
+    margin-bottom: var(--space-4);
+  }
+
+  .contributions {
+    display: grid;
+    gap: var(--space-3);
+  }
+
+  .contributions li {
+    position: relative;
+    padding-left: 3ch;
+  }
+
+  .contributions li::before {
+    content: '/' / '';
+    position: absolute;
+    left: 0;
+    color: var(--color-accent);
+  }
+
+  .external {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-6);
+  }
+</style>

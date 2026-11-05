@@ -1,0 +1,96 @@
+{
+  "environment": "linux container, headless Chromium (Playwright), 2026-11-05T05:15:36.333Z",
+  "results": [
+    {
+      "config": "desktop 1440×900, DPR 2, no throttle",
+      "idle": {
+        "label": "idle drift",
+        "seconds": 6,
+        "framesPerSec": 20,
+        "frameMsMedian": 0.8,
+        "frameMsP95": 1.2,
+        "mainThreadBusyPct": 5.9,
+        "scriptPct": 1.8,
+        "layoutCount": 0,
+        "styleRecalcs": 0
+      },
+      "pointer": {
+        "label": "pointer sweeping",
+        "seconds": 4.05,
+        "framesPerSec": 20,
+        "frameMsMedian": 0.8,
+        "frameMsP95": 1.1,
+        "mainThreadBusyPct": 7.1,
+        "scriptPct": 1.9,
+        "layoutCount": 0,
+        "styleRecalcs": 0
+      },
+      "paused": {
+        "label": "paused",
+        "seconds": 4,
+        "framesPerSec": 0,
+        "frameMsMedian": 0,
+        "frameMsP95": 0,
+        "mainThreadBusyPct": 0,
+        "scriptPct": 0,
+        "layoutCount": 0,
+        "styleRecalcs": 0
+      },
+      "jsHeapMB": 3.5
+    },
+    {
+      "config": "mobile 390×844, DPR 3 (capped 2), CPU 4× throttle",
+      "idle": {
+        "label": "idle drift",
+        "seconds": 6.01,
+        "framesPerSec": 20.1,
+        "frameMsMedian": 1.8,
+        "frameMsP95": 2.8,
+        "mainThreadBusyPct": 10.9,
+        "scriptPct": 3.9,
+        "layoutCount": 0,
+        "styleRecalcs": 0
+      },
+      "pointer": null,
+      "paused": {
+        "label": "paused",
+        "seconds": 4,
+        "framesPerSec": 0,
+        "frameMsMedian": 0,
+        "frameMsP95": 0,
+        "mainThreadBusyPct": 0,
+        "scriptPct": 0,
+        "layoutCount": 0,
+        "styleRecalcs": 0
+      },
+      "jsHeapMB": 2.82
+    },
+    {
+      "config": "mobile 390×844, DPR 3 (capped 2), CPU 6× throttle",
+      "idle": {
+        "label": "idle drift",
+        "seconds": 6.01,
+        "framesPerSec": 20,
+        "frameMsMedian": 2.8,
+        "frameMsP95": 5,
+        "mainThreadBusyPct": 16.6,
+        "scriptPct": 6,
+        "layoutCount": 0,
+        "styleRecalcs": 0
+      },
+      "pointer": null,
+      "paused": {
+        "label": "paused",
+        "seconds": 4,
+        "framesPerSec": 0,
+        "frameMsMedian": 0,
+        "frameMsP95": 0,
+        "mainThreadBusyPct": 0,
+        "scriptPct": 0,
+        "layoutCount": 0,
+        "styleRecalcs": 0
+      },
+      "jsHeapMB": 2.68
+    }
+  ]
+}

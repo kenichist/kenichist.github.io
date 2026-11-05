@@ -1,0 +1,26 @@
+{
+  "name": "kenichi-portfolio",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro check && astro build",
+    "build:demo": "DEMO_CONTENT=1 astro build",
+    "build:live": "DEMO_CONTENT=0 astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "test": "vitest run",
+    "qa": "node scripts/qa.mjs"
+  },
+  "dependencies": {
+    "astro": "^7.4.5"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.12",
+    "@types/node": "^22.20.5",
+    "axe-core": "^4.14.0",
+    "typescript": "^6.0.3",
+    "vitest": "^5.1.0"
+  }
+}
