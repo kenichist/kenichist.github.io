@@ -20,7 +20,7 @@ const pass = (name, ok, detail = '') => {
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? ' — ' + detail : ''}`);
 };
 
-const ROUTES = ['/', '/work/', '/work/project-01/', '/work/project-02/', '/work/project-03/', '/notes/', '/notes/research-note-01/', '/does-not-exist/'];
+const ROUTES = ['/', '/work/', '/work/project-01/', '/work/project-02/', '/work/project-03/', '/notes/', '/notes/research-note-01/', '/lab/digits/', '/does-not-exist/'];
 
 /** Counts rAF callbacks so tests can tell whether the field is scheduling work. */
 const RAF_COUNTER = () => {

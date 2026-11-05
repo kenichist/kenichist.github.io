@@ -1,0 +1,278 @@
+{
+ "arch": {
+  "conv1": [
+   5,
+   5,
+   1,
+   12
+  ],
+  "conv2": [
+   3,
+   3,
+   12,
+   24
+  ],
+  "dense1": [
+   600,
+   48
+  ],
+  "dense2": [
+   48,
+   10
+  ],
+  "input": [
+   28,
+   28
+  ],
+  "layout": "NHWC, HWIO"
+ },
+ "params": 32266,
+ "bytes": 32924,
+ "tensors": [
+  {
+   "name": "c1w",
+   "dtype": "int8",
+   "shape": [
+    5,
+    5,
+    1,
+    12
+   ],
+   "offset": 0,
+   "bytes": 300
+  },
+  {
+   "name": "c1w.scale",
+   "dtype": "float32",
+   "shape": [
+    12
+   ],
+   "offset": 300,
+   "bytes": 48
+  },
+  {
+   "name": "c1b",
+   "dtype": "float32",
+   "shape": [
+    12
+   ],
+   "offset": 348,
+   "bytes": 48
+  },
+  {
+   "name": "c2w",
+   "dtype": "int8",
+   "shape": [
+    3,
+    3,
+    12,
+    24
+   ],
+   "offset": 396,
+   "bytes": 2592
+  },
+  {
+   "name": "c2w.scale",
+   "dtype": "float32",
+   "shape": [
+    24
+   ],
+   "offset": 2988,
+   "bytes": 96
+  },
+  {
+   "name": "c2b",
+   "dtype": "float32",
+   "shape": [
+    24
+   ],
+   "offset": 3084,
+   "bytes": 96
+  },
+  {
+   "name": "d1w",
+   "dtype": "int8",
+   "shape": [
+    600,
+    48
+   ],
+   "offset": 3180,
+   "bytes": 28800
+  },
+  {
+   "name": "d1w.scale",
+   "dtype": "float32",
+   "shape": [
+    48
+   ],
+   "offset": 31980,
+   "bytes": 192
+  },
+  {
+   "name": "d1b",
+   "dtype": "float32",
+   "shape": [
+    48
+   ],
+   "offset": 32172,
+   "bytes": 192
+  },
+  {
+   "name": "d2w",
+   "dtype": "int8",
+   "shape": [
+    48,
+    10
+   ],
+   "offset": 32364,
+   "bytes": 480
+  },
+  {
+   "name": "d2w.scale",
+   "dtype": "float32",
+   "shape": [
+    10
+   ],
+   "offset": 32844,
+   "bytes": 40
+  },
+  {
+   "name": "d2b",
+   "dtype": "float32",
+   "shape": [
+    10
+   ],
+   "offset": 32884,
+   "bytes": 40
+  }
+ ],
+ "metrics": {
+  "mnist_test_float": 0.9908,
+  "mnist_test_int8": 0.9907,
+  "restroked_test_int8": 0.9832,
+  "restroked_confusion": [
+   [
+    977,
+    0,
+    0,
+    0,
+    0,
+    0,
+    2,
+    0,
+    1,
+    0
+   ],
+   [
+    1,
+    1119,
+    2,
+    0,
+    1,
+    1,
+    6,
+    4,
+    1,
+    0
+   ],
+   [
+    1,
+    0,
+    1024,
+    0,
+    3,
+    0,
+    0,
+    3,
+    0,
+    1
+   ],
+   [
+    1,
+    0,
+    1,
+    997,
+    0,
+    4,
+    0,
+    3,
+    4,
+    0
+   ],
+   [
+    2,
+    0,
+    0,
+    0,
+    965,
+    1,
+    3,
+    1,
+    2,
+    8
+   ],
+   [
+    2,
+    0,
+    0,
+    5,
+    0,
+    881,
+    2,
+    0,
+    0,
+    2
+   ],
+   [
+    2,
+    4,
+    2,
+    0,
+    3,
+    1,
+    944,
+    0,
+    2,
+    0
+   ],
+   [
+    0,
+    2,
+    11,
+    1,
+    1,
+    0,
+    0,
+    1008,
+    1,
+    4
+   ],
+   [
+    3,
+    1,
+    3,
+    1,
+    3,
+    3,
+    7,
+    2,
+    935,
+    16
+   ],
+   [
+    0,
+    4,
+    0,
+    0,
+    5,
+    3,
+    0,
+    11,
+    4,
+    982
+   ]
+  ],
+  "note": "restroked = MNIST test digits skeletonised and redrawn at a constant 1.6\u20133.2px width (synthetic stand-in for mouse drawings)"
+ },
+ "trained": "2026-11-05"
+}

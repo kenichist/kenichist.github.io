@@ -1,0 +1,253 @@
+---
+import meta from '../data/digits-model.json';
+
+/** ASCII drawing pad with an in-browser digit classifier. See src/scripts/digits/. */
+interface Props {
+  /** show the "what did you draw?" accuracy panel */
+  evaluate?: boolean;
+}
+const { evaluate = false } = Astro.props;
+const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
+const m = meta.metrics;
+---
+
+<div class="digits" data-digit-pad>
+  <div class="pad-col">
+    <div class="pad" data-surface aria-describedby="pad-help">
+      <pre class="pad-layer pad-grid" data-grid aria-hidden="true"></pre>
+      <pre class="pad-layer pad-dim" data-ink="dim" aria-hidden="true"></pre>
+      <pre class="pad-layer pad-bright" data-ink="bright" aria-hidden="true"></pre>
+    </div>
+    <p id="pad-help" class="pad-help">
+      Draw a digit with a mouse, pen, or finger. Keyboard: use “try a test digit”.
+    </p>
+    <div class="pad-actions">
+      <button type="button" class="pad-btn" data-clear>
+        <span aria-hidden="true">[</span> clear <span aria-hidden="true">]</span>
+      </button>
+      <button type="button" class="pad-btn" data-sample>
+        <span aria-hidden="true">[</span> try a test digit <span aria-hidden="true">]</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="result-col">
+    <p class="label">guess</p>
+    <p class="guess" data-guess aria-hidden="true">—</p>
+    <p class="detail" data-detail></p>
+    <p class="sr-only" aria-live="polite" data-announce></p>
+    <div class="bars" data-bars aria-hidden="true"></div>
+    <div class="sees">
+      <p class="label">what the model sees · 28×28</p>
+      <pre class="sees-grid" data-sees aria-hidden="true"></pre>
+    </div>
+  </div>
+
+  {
+    evaluate && (
+      <section class="eval" data-eval aria-labelledby="eval-heading">
+        <h2 id="eval-heading" class="label">
+          measure it on your drawings
+        </h2>
+        <div class="eval-prompt" data-eval-prompt hidden>
+          <p>What did you draw?</p>
+          <div class="eval-digits">
+            {Array.from({ length: 10 }, (_, d) => (
+              <button type="button" class="pad-btn digit-btn" data-drawn={d} aria-label={`I drew ${d}`}>
+                {d}
+              </button>
+            ))}
+          </div>
+        </div>
+        <p class="tally" data-tally aria-live="polite" />
+        <div class="pad-actions">
+          <button type="button" class="pad-btn" data-copy>
+            <span aria-hidden="true">[</span> <span data-label>copy results</span> <span aria-hidden="true">]</span>
+          </button>
+          <button type="button" class="pad-btn" data-reset>
+            <span aria-hidden="true">[</span> reset tally <span aria-hidden="true">]</span>
+          </button>
+        </div>
+      </section>
+    )
+  }
+
+  <p class="model-note">
+    {meta.params.toLocaleString('en')}-parameter CNN, {Math.round(meta.bytes / 1024)} KB, running in your browser.
+    MNIST test accuracy {pct(m.mnist_test_int8)}; {pct(m.restroked_test_int8)} on test digits redrawn as constant-width strokes.
+    Your drawings may score lower. Samples from MNIST (LeCun, Cortes &amp; Burges, CC BY-SA 3.0).
+  </p>
+</div>
+
+<script>
+  import { enhanceDigitPads } from '../scripts/digits/pad';
+  enhanceDigitPads();
+</script>
+
+<style>
+  .digits {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: clamp(2rem, 1rem + 3vw, 4rem);
+    align-items: start;
+  }
+
+  .pad {
+    position: relative;
+    aspect-ratio: 1;
+    container-type: inline-size;
+    touch-action: none;
+    cursor: crosshair;
+    user-select: none;
+    -webkit-user-select: none;
+    border-radius: 2px;
+    background: var(--color-bg-deep);
+  }
+
+  .pad-layer {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    /* 40 square cells per side: 0.5em glyph + 0.5em spacing = 1em, line-height 1 */
+    font-size: calc(100cqi / 40);
+    line-height: 1;
+    letter-spacing: 0.5em;
+    white-space: pre;
+    pointer-events: none;
+  }
+
+  .pad-grid {
+    color: var(--color-rule);
+  }
+
+  .pad-dim {
+    color: var(--color-accent);
+  }
+
+  .pad-bright {
+    color: var(--color-text);
+  }
+
+  .pad-help {
+    margin-top: var(--space-3);
+    font-size: var(--step--1);
+    color: var(--color-text-2);
+  }
+
+  .pad-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-5);
+    margin-top: var(--space-2);
+  }
+
+  .pad-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5ch;
+    min-height: 44px;
+    min-width: 44px;
+    justify-content: center;
+    padding: 0 var(--space-1);
+    background: none;
+    border: 0;
+    cursor: pointer;
+    font-size: var(--step--1);
+    letter-spacing: var(--track-nav);
+    color: var(--color-accent-text);
+    transition: color var(--dur-micro) ease-out;
+  }
+
+  .pad-btn:hover,
+  .pad-btn:focus-visible {
+    color: var(--color-text);
+  }
+
+  .guess {
+    margin-top: var(--space-2);
+    font-size: clamp(3rem, 2rem + 4vw, 5.5rem);
+    line-height: 1;
+    color: var(--color-text);
+  }
+
+  .detail {
+    min-height: 1.65em;
+    margin-top: var(--space-3);
+    color: var(--color-text-2);
+  }
+
+  .bars {
+    margin-top: var(--space-5);
+    font-size: var(--step--1);
+    line-height: 1.7;
+    letter-spacing: 0.06em;
+    white-space: pre;
+    color: var(--color-accent);
+  }
+
+  .bars :global(.is-top) {
+    color: var(--color-text);
+  }
+
+  .sees {
+    margin-top: var(--space-6);
+  }
+
+  .sees-grid {
+    width: min(100%, 196px);
+    aspect-ratio: 1;
+    margin: var(--space-3) 0 0;
+    font-size: 7px;
+    line-height: 1;
+    letter-spacing: 0.5em;
+    white-space: pre;
+    color: var(--color-text-2);
+    background: var(--color-bg-deep);
+  }
+
+  .eval {
+    grid-column: 1 / -1;
+    padding-top: var(--space-6);
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .eval-prompt {
+    margin-top: var(--space-4);
+  }
+
+  .eval-digits {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+    margin-top: var(--space-2);
+  }
+
+  .digit-btn {
+    font-size: var(--step-1);
+    color: var(--color-text);
+    border: 1px solid var(--color-rule);
+  }
+
+  .digit-btn:hover,
+  .digit-btn:focus-visible {
+    border-color: var(--color-accent);
+  }
+
+  .tally {
+    margin-top: var(--space-4);
+    color: var(--color-text);
+  }
+
+  .model-note {
+    grid-column: 1 / -1;
+    max-width: var(--measure);
+    font-size: var(--step--1);
+    color: var(--color-text-2);
+  }
+
+  @media (max-width: 47.99rem) {
+    .digits {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>

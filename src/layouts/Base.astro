@@ -49,13 +49,15 @@ const robots = content.demo || noindex ? 'noindex, nofollow' : undefined;
         } catch (e) {}
         // A cross-document view transition can be skipped (e.g. on a fast back/forward);
         // Chrome then rejects its promises. Nothing depends on them, so swallow that.
-        addEventListener('pagereveal', function (e) {
+        function quiet(e) {
           var vt = e.viewTransition;
           if (!vt) return;
           [vt.ready, vt.finished, vt.updateCallbackDone].forEach(function (p) {
             if (p && p.catch) p.catch(function () {});
           });
-        });
+        }
+        addEventListener('pagereveal', quiet); // incoming page
+        addEventListener('pageswap', quiet); // outgoing page
       })();
     </script>
   </head>

@@ -86,6 +86,13 @@ a {
   text-decoration: none;
 }
 
+/* <pre> defaults to the UA monospace; keep every character grid on the site font. */
+pre,
+code {
+  font-family: inherit;
+  font-variant-ligatures: none;
+}
+
 button {
   font: inherit;
   letter-spacing: inherit;

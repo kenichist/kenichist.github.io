@@ -24,7 +24,7 @@ npm run build:live     # build with demo content OFF (real content only)
 
 ## Routes
 
-`/` · `/work/` · `/work/[slug]/` · `/notes/` · `/notes/[slug]/` · `404` · `/robots.txt` · `/sitemap.xml`
+`/` · `/work/` · `/work/[slug]/` · `/notes/` · `/notes/[slug]/` · `/lab/digits/` (unlinked, noindex) · `404` · `/robots.txt` · `/sitemap.xml`
 
 ## Structure
 

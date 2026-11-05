@@ -196,7 +196,42 @@ and runs of background are filled per row.
 - Without JavaScript there is no loader, because the class is never set.
 - If the loader script fails, CSS failsafes reveal the page after 8s.
 
-## 8. Deliberate deviations from tooling heuristics
+## 8. Digit lab (`/lab/digits/`)
+
+This is an in-browser handwritten-digit classifier, a candidate for the homepage hero. The page is
+noindex and isn't linked from the navigation.
+
+- **Model:** a small CNN: conv 5×5 (12) → pool → conv 3×3 (24) → pool → dense 48 → 10.
+  It has 32,266 parameters, stored as int8 with per-channel scales (32.2 KB).
+  Inference is plain TypeScript, with no ML runtime, in `src/scripts/digits/model.ts`.
+- **Training:** `scripts/digits/train.py` (JAX, CPU, about 4 minutes). Half of the training images are
+  MNIST digits skeletonised and redrawn as constant-width strokes, to match browser drawings.
+  All images get random rotation, shear, aspect and thickness changes.
+- **Preparation** (`src/scripts/digits/preprocess.ts`): the strokes are fitted into a 20×20 box, then
+  shifted so the centre of mass sits at pixel (14, 14), and rendered as anti-aliased round-capped
+  lines. Training uses the same convention.
+- **Measured accuracy:**
+
+  | Test | Accuracy |
+  | --- | --- |
+  | MNIST test, float weights | **99.08%** |
+  | MNIST test, int8 weights | **99.07%** |
+  | Redrawn MNIST test (int8) | **98.32%** |
+  | Simulated mouse drawings through the real page | 100/100 tidy, **148/150** sloppy |
+
+  The simulated drawings are templated digits with random scale, aspect, rotation and shaky lines.
+  Accuracy on human drawings hasn't been measured yet; the page's tally records it.
+- **UX safeguards:**
+  - Confidence bars for all ten digits.
+  - "not sure: a or b" below 60% confidence.
+  - "draw a little bigger" for tiny drawings.
+  - A pause of 1.6s or more starts a fresh drawing.
+  - "try a test digit" works from the keyboard.
+  - Results are announced through a polite live region.
+  - The pad uses `touch-action: none`, so finger drawing doesn't scroll the page.
+- **MNIST credit:** LeCun, Cortes and Burges, CC BY-SA 3.0. It appears on the page.
+
+## 9. Deliberate deviations from tooling heuristics
 
 - **The uppercase role line sits above the name** (`AI / MACHINE LEARNING ENGINEER`). Impeccable's
   craft floor bans eyebrow labels, but the approved mockup has one, and Impeccable's own rule is
