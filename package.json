@@ -11,7 +11,8 @@
     "preview": "astro preview",
     "check": "astro check",
     "test": "vitest run",
-    "qa": "node scripts/qa.mjs"
+    "qa": "node scripts/qa.mjs",
+    "field:convert": "node --experimental-strip-types --no-warnings scripts/video-to-ascii.ts"
   },
   "dependencies": {
     "astro": "^7.4.5"

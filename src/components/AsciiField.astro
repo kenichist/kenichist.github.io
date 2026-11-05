@@ -1,5 +1,8 @@
 ---
+import { existsSync, readFileSync } from 'node:fs';
 import { DEFAULT_SEED, renderTextFrame } from '../scripts/ascii/field';
+import { clipFrameText, isFieldClip, type FieldClip } from '../scripts/ascii/frames';
+import { site } from '../content/site';
 
 /**
  * Hero character field. Server-renders a seeded still frame as text (shown
@@ -12,11 +15,29 @@ interface Props {
   seed?: number;
 }
 const { seed = DEFAULT_SEED } = Astro.props;
-const wide = renderTextFrame(70, 21, seed);
-const narrow = renderTextFrame(46, 18, seed);
+
+/** A configured video clip replaces the procedural field; a missing or invalid file falls back to it. */
+function loadClip(variant: 'wide' | 'narrow'): FieldClip | null {
+  if (!site.fieldClip) return null;
+  const file = `public/field/${site.fieldClip}.${variant}.json`;
+  if (!existsSync(file)) {
+    console.warn(`[field] ${file} not found — using the procedural field`);
+    return null;
+  }
+  const data = JSON.parse(readFileSync(file, 'utf8'));
+  return isFieldClip(data) ? data : null;
+}
+const clipWide = loadClip('wide');
+const clipNarrow = loadClip('narrow');
+const useClip = !!(clipWide && clipNarrow);
+const wide = useClip ? clipFrameText(clipWide!, clipWide!.poster, 70, 21) : renderTextFrame(70, 21, seed);
+const narrow = useClip ? clipFrameText(clipNarrow!, clipNarrow!.poster, 46, 18) : renderTextFrame(46, 18, seed);
+const clipAttrs = useClip
+  ? { 'data-clip-wide': `/field/${site.fieldClip}.wide.json`, 'data-clip-narrow': `/field/${site.fieldClip}.narrow.json` }
+  : {};
 ---
 
-<div class="field" data-ascii-field data-seed={seed} data-state="static">
+<div class="field" data-ascii-field data-seed={seed} data-state="static" {...clipAttrs}>
   <div class="field-surface" data-field-surface aria-hidden="true">
     <pre class="field-text field-text-wide">{wide}</pre>
     <pre class="field-text field-text-narrow">{narrow}</pre>

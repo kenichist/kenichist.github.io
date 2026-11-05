@@ -6,8 +6,12 @@
  * first paint and the first animated frame share one seeded pattern.
  */
 
-/** Characters the field may emit. Every glyph must exist in the font subset. */
-export const FIELD_GLYPHS = ['.', ':', "'", '|', '/', '+', '*'] as const;
+import { CELL_GLYPHS, hash2 } from './frames';
+
+export { hash2 };
+
+/** Characters the procedural field emits (a subset of CELL_GLYPHS). */
+export const FIELD_GLYPHS = ['.', ':', "'", '|', '/', '+', '*'] as const satisfies readonly (typeof CELL_GLYPHS)[number][];
 export type FieldGlyph = (typeof FIELD_GLYPHS)[number];
 
 /** Brightness tiers, 0 = faintest airborne dust, 3 = seed heads. */
@@ -21,14 +25,6 @@ export interface FieldCell {
 export const DEFAULT_SEED = 1729;
 
 const EMPTY: FieldCell = { ch: ' ', level: 0 };
-
-/** Integer hash → [0, 1). Stable across engines (uses Math.imul). */
-export function hash2(x: number, y: number, seed: number): number {
-  let h = Math.imul(x | 0, 374761393) ^ Math.imul(y | 0, 668265263) ^ Math.imul(seed | 0, 2246822519);
-  h = Math.imul(h ^ (h >>> 13), 1274126177);
-  h ^= h >>> 16;
-  return (h >>> 0) / 4294967296;
-}
 
 function smoothstep(e0: number, e1: number, x: number): number {
   const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));

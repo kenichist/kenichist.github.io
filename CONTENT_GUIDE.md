@@ -69,3 +69,19 @@ routes.
 3. Set `SITE_URL` once a domain exists.
 4. Run `npm test && npm run build`. The build runs the type check first.
 5. Optionally run the rendered QA (see README) against the new build.
+
+## Hero artwork from a video
+
+The hero field can play a pre-converted video loop instead of the generated pattern.
+Visitors download only the converted character data, never the video.
+
+```sh
+npm run field:convert -- path/to/clip.mov --name grass --segments 2-8,10-15
+```
+
+This writes `public/field/grass.wide.json` and `public/field/grass.narrow.json`. To use them, set
+`FIELD_CLIP = 'grass'` in `src/content/site.ts`. Run `npm run field:convert` with no arguments
+to see every option (fps, density, dissolve length, crop focus, poster frame).
+
+Use footage you shot yourself or have a licence for. Slow, high-contrast footage with no
+on-screen text converts best.

@@ -1,4 +1,5 @@
-import { DEFAULT_SEED, FIELD_GLYPHS, hash2, sampleCell, type FieldLevel } from './field';
+import { DEFAULT_SEED, hash2, sampleCell, type FieldLevel } from './field';
+import { CELL_GLYPHS, decodeCode, isFieldClip, type FieldClip } from './frames';
 import {
   controlAction,
   deriveState,
@@ -64,6 +65,10 @@ export class AsciiField {
   private push = new Float32Array(0);
   private atlas: HTMLCanvasElement | null = null;
   private colors: string[] = [];
+  /** Video-derived clip for the current grid; null → procedural field. */
+  private clip: FieldClip | null = null;
+  private clipVariant: 'wide' | 'narrow' | null = null;
+  private readonly clipCache = new Map<string, Promise<FieldClip | null>>();
 
   private t = 0;
   private timeScale = 1;
@@ -130,6 +135,8 @@ export class AsciiField {
     this.readColors();
     this.layout();
     if (!this.grid) return;
+    await this.syncClip();
+    if (this.abort.signal.aborted) return;
 
     this.ro = new ResizeObserver(() => this.queueResize());
     this.ro.observe(this.surface);
@@ -341,7 +348,7 @@ export class AsciiField {
   private queueResize(): void {
     clearTimeout(this.resizeTimer);
     this.resizeTimer = window.setTimeout(() => {
-      if (this.layout()) this.draw(performance.now());
+      if (this.layout()) void this.syncClip().then(() => this.draw(performance.now()));
     }, 120);
   }
 
@@ -382,6 +389,33 @@ export class AsciiField {
     return true;
   }
 
+  /**
+   * Load the clip matching the current grid (wide / narrow) when the page uses one.
+   * Any failure leaves the procedural field in place.
+   */
+  private async syncClip(): Promise<void> {
+    const g = this.grid;
+    if (!g) return;
+    const variant = g.cols >= 60 ? 'wide' : 'narrow';
+    const url = variant === 'wide' ? this.root.dataset.clipWide : this.root.dataset.clipNarrow;
+    if (!url || variant === this.clipVariant) return;
+    let pending = this.clipCache.get(url);
+    if (!pending) {
+      pending = fetch(url)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((j) => (isFieldClip(j) ? j : null))
+        .catch(() => null);
+      this.clipCache.set(url, pending);
+    }
+    const clip = await pending;
+    if (!clip) return;
+    const first = !this.clip;
+    this.clip = clip;
+    this.clipVariant = variant;
+    // Start on the poster frame so the canvas matches the server-rendered fallback.
+    if (first) this.t = clip.poster / clip.fps;
+  }
+
   private readColors(): void {
     const cs = getComputedStyle(this.root);
     this.colors = [0, 1, 2, 3].map((l) => cs.getPropertyValue(`--field-${l}`).trim() || '#8F779C');
@@ -391,7 +425,7 @@ export class AsciiField {
   private buildAtlas(): void {
     const g = this.grid!;
     const atlas = document.createElement('canvas');
-    atlas.width = g.cw * FIELD_GLYPHS.length;
+    atlas.width = g.cw * CELL_GLYPHS.length;
     atlas.height = g.ch * 4;
     const a = atlas.getContext('2d');
     if (!a) return;
@@ -401,7 +435,7 @@ export class AsciiField {
     a.textBaseline = 'middle';
     for (let level = 0; level < 4; level++) {
       a.fillStyle = this.colors[level];
-      FIELD_GLYPHS.forEach((glyph, gi) => {
+      CELL_GLYPHS.forEach((glyph, gi) => {
         a.fillText(glyph, gi * g.cw + g.cw / 2, level * g.ch + g.ch / 2);
       });
     }
@@ -421,6 +455,11 @@ export class AsciiField {
       if (reveal >= 1) this.revealStart = -1;
     }
 
+    if (this.clip) {
+      this.drawClip(this.clip, reveal);
+      return;
+    }
+
     for (let row = 0; row < rows; row++) {
       const ny = (row + 0.5) / rows;
       const y = Math.round(row * pitchY);
@@ -435,6 +474,36 @@ export class AsciiField {
     }
   }
 
+  /**
+   * Blit one clip frame. Playback follows field time, so pause, settle (eases to a
+   * stop), and reduced motion (stays on the poster) behave exactly as they do for
+   * the procedural field. Pointer displacement shifts where each cell samples from,
+   * and sideways push bends upright strokes.
+   */
+  private drawClip(clip: FieldClip, reveal: number): void {
+    const g = this.grid!;
+    const { cols, rows, cw, ch, pitchX, pitchY } = g;
+    const n = clip.frames.length;
+    const frame = clip.frames[(((Math.floor(this.t * clip.fps) % n) + n) % n)];
+    const sx = clip.cols / cols;
+    const sy = clip.rows / rows;
+    for (let row = 0; row < rows; row++) {
+      const y = Math.round(row * pitchY);
+      for (let col = 0; col < cols; col++) {
+        if (reveal < 1 && hash2(col, row, this.seed + 313) > reveal) continue;
+        const i = row * cols + col;
+        const srcCol = Math.round(col - this.dispX[i] * cols);
+        const srcRow = Math.round(row - this.dispY[i] * rows);
+        if (srcCol < 0 || srcRow < 0 || srcCol >= cols || srcRow >= rows) continue;
+        const packed = decodeCode(frame.charCodeAt(Math.floor(srcRow * sy) * clip.cols + Math.floor(srcCol * sx)));
+        if (packed < 0) continue;
+        let gi = packed >> 2;
+        if (gi === BAR && Math.abs(this.push[i]) > 0.25) gi = this.push[i] > 0 ? SLASH : BACKSLASH;
+        this.ctx.drawImage(this.atlas!, gi * cw, (packed & 3) * ch, cw, ch, Math.round(col * pitchX), y, cw, ch);
+      }
+    }
+  }
+
   private toNormalised(clientX: number, clientY: number): { x: number; y: number } | null {
     const r = this.canvas.getBoundingClientRect();
     if (!r.width || !r.height) return null;
@@ -442,7 +511,10 @@ export class AsciiField {
   }
 }
 
-const GLYPH_INDEX = Object.fromEntries(FIELD_GLYPHS.map((g, i) => [g, i])) as Record<string, number>;
+const GLYPH_INDEX = Object.fromEntries(CELL_GLYPHS.map((g, i) => [g, i])) as Record<string, number>;
+const BAR = GLYPH_INDEX['|'];
+const SLASH = GLYPH_INDEX['/'];
+const BACKSLASH = GLYPH_INDEX['\\'];
 
 function clamp(v: number, m: number): number {
   return v > m ? m : v < -m ? -m : v;
