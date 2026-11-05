@@ -7,7 +7,7 @@
  * paused the hero animation. Stops scheduling frames when the tab is hidden and
  * slows, then rests, when the pointer goes idle.
  */
-import { fishAt, KOI_GLYPHS, makeFish, swim, type Fish } from './fish';
+import { centre, fishAt, KOI_GLYPHS, makeFish, pose, swim, type Fish } from './fish';
 
 const FONT_PX = 12;
 const CELL_W = FONT_PX * 0.78;
@@ -238,15 +238,18 @@ class Follower {
     const cw = Math.ceil(CELL_W * this.dpr);
     const ch = Math.ceil(CELL_H * this.dpr);
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    // sample the koi as if it sat at the canvas centre, then move the canvas to the koi
-    const local: Fish = { ...f, x: this.w / 2, y: this.h / 2 };
+    // the canvas is centred on the koi's body; sample the real (bending) koi in page coordinates
+    const c = centre(f);
+    const ox = c.x - this.w / 2;
+    const oy = c.y - this.h / 2;
+    const p = pose(f);
     for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
-        const cell = fishAt(local, (c + 0.5) * CELL_W, (r + 0.5) * CELL_H, CELL_W, CELL_H);
+      for (let col = 0; col < COLS; col++) {
+        const cell = fishAt(f, p, ox + (col + 0.5) * CELL_W, oy + (r + 0.5) * CELL_H, CELL_W, CELL_H);
         if (!cell) continue;
-        ctx.drawImage(this.atlas!, cell.glyph * cw, cell.level * ch, cw, ch, Math.round(c * CELL_W * this.dpr), Math.round(r * CELL_H * this.dpr), cw, ch);
+        ctx.drawImage(this.atlas!, cell.glyph * cw, cell.level * ch, cw, ch, Math.round(col * CELL_W * this.dpr), Math.round(r * CELL_H * this.dpr), cw, ch);
       }
     }
-    this.canvas.style.transform = `translate3d(${(f.x - this.w / 2).toFixed(1)}px, ${(f.y - this.h / 2).toFixed(1)}px, 0)`;
+    this.canvas.style.transform = `translate3d(${ox.toFixed(1)}px, ${oy.toFixed(1)}px, 0)`;
   }
 }

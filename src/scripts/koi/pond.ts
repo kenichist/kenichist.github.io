@@ -4,7 +4,7 @@
  * Deterministic for a seed; world units are CSS pixels of the field surface.
  */
 import { hash2 } from '../ascii/frames';
-import { fishAt, glyphIndex as G, makeFish, strokeGlyph, swim, type Cell, type Fish } from './fish';
+import { centre, fishAt, glyphIndex as G, makeFish, pose, strokeGlyph, swim, type Cell, type Fish, type Pose } from './fish';
 
 interface Pad {
   x: number;
@@ -28,6 +28,20 @@ interface Food {
 const RIPPLE_LIFE = 2.2;
 const FOOD_LIFE = 9;
 
+interface Plan {
+  /** where this koi is heading */
+  tx: number;
+  ty: number;
+  /** cruising speed for this leg */
+  cruise: number;
+  /** seconds until a new destination even if this one isn't reached */
+  ttl: number;
+  /** burst-and-glide clock */
+  clock: number;
+  /** startle: dart away until this time */
+  dartUntil: number;
+}
+
 export class Pond {
   readonly fish: Fish[] = [];
   readonly pads: Pad[] = [];
@@ -35,23 +49,69 @@ export class Pond {
   food: Food[] = [];
   t = 0;
   private lastRipple = -1;
+  private plans: Plan[] = [];
+  private rng: number;
+  private poses: Pose[] = [];
 
   constructor(
     public w: number,
     public h: number,
     readonly seed = 11,
   ) {
-    const len = Math.max(80, Math.min(170, w * 0.21));
-    const spots: [number, number, number][] = [
-      [0.28, 0.35, 0.2],
-      [0.66, 0.62, 2.6],
-      [0.48, 0.8, -0.5],
+    this.rng = seed * 7919;
+    // two grown koi and a young one
+    const spots: [number, number, number, number][] = [
+      [0.3, 0.36, 0.25, 0.25],
+      [0.7, 0.66, 2.75, 0.23],
+      [0.5, 0.84, -0.4, 0.14],
     ];
-    spots.forEach(([fx, fy, a], i) => this.fish.push(makeFish(fx * w, fy * h, a, len * (1 - i * 0.08), seed + i * 7)));
+    spots.forEach(([fx, fy, a, size], i) => {
+      const f = makeFish(fx * w, fy * h, a, Math.max(64, Math.min(190, w * size)), seed + i * 7);
+      f.v = 30;
+      this.fish.push(f);
+      this.plans.push(this.newPlan(f, i));
+    });
     const pr = Math.max(24, Math.min(54, w * 0.06));
     this.pads.push({ x: 0.84 * w, y: 0.26 * h, r: pr, notch: 2.3, flower: true });
     this.pads.push({ x: 0.12 * w, y: 0.74 * h, r: pr * 0.8, notch: -0.6, flower: false });
     this.pads.push({ x: 0.93 * w, y: 0.5 * h, r: pr * 0.55, notch: 0.9, flower: false });
+  }
+
+  /** Deterministic 0..1 random numbers. */
+  private rand(): number {
+    this.rng = (Math.imul(this.rng, 1103515245) + 12345) >>> 0;
+    return this.rng / 4294967296;
+  }
+
+  /**
+   * Pick the next destination: somewhere open, mostly ahead (koi rarely double back),
+   * at a fresh cruising speed.
+   */
+  private newPlan(f: Fish, i: number): Plan {
+    const m = f.len * 0.7;
+    let best = { x: this.w / 2, y: this.h / 2 };
+    let bestScore = -Infinity;
+    for (let k = 0; k < 6; k++) {
+      const x = m + this.rand() * Math.max(1, this.w - 2 * m);
+      const y = m * 0.6 + this.rand() * Math.max(1, this.h - 1.2 * m);
+      const dist = Math.hypot(x - f.x, y - f.y);
+      const turn = Math.abs(Math.atan2(Math.sin(Math.atan2(y - f.y, x - f.x) - f.a), Math.cos(Math.atan2(y - f.y, x - f.x) - f.a)));
+      // stay out of each other's way: avoid where the others are and where they're going
+      let crowd = 0;
+      this.fish.forEach((o, j) => {
+        if (o === f) return;
+        const c = centre(o);
+        crowd += Math.max(0, 1 - Math.hypot(c.x - x, c.y - y) / (f.len * 1.8));
+        const pl = this.plans[j];
+        if (pl) crowd += Math.max(0, 1 - Math.hypot(pl.tx - x, pl.ty - y) / (f.len * 1.8));
+      });
+      const score = Math.min(dist, this.w * 0.5) / this.w - turn * 0.35 - crowd * 0.6 + this.rand() * 0.2;
+      if (dist > f.len * 1.2 && score > bestScore) {
+        bestScore = score;
+        best = { x, y };
+      }
+    }
+    return { tx: best.x, ty: best.y, cruise: 26 + this.rand() * 22, ttl: 9 + this.rand() * 8, clock: this.rand() * 3 + i, dartUntil: -1 };
   }
 
   resize(w: number, h: number): void {
@@ -60,6 +120,14 @@ export class Pond {
     for (const f of this.fish) {
       f.x *= sx;
       f.y *= sy;
+      for (let i = 0; i < f.chain.length; i += 2) {
+        f.chain[i] *= sx;
+        f.chain[i + 1] *= sy;
+      }
+    }
+    for (const p of this.plans) {
+      p.tx *= sx;
+      p.ty *= sy;
     }
     for (const p of this.pads) {
       p.x *= sx;
@@ -69,15 +137,28 @@ export class Pond {
     this.h = h;
   }
 
-  /** Pointer moving over the water: ripples every so often, faster motion = stronger. */
+  /** Pointer moving over the water: ripples; a fast pass right overhead startles nearby koi. */
   stir(x: number, y: number, speed: number): void {
     if (this.t - this.lastRipple < 0.18) return;
     this.lastRipple = this.t;
     this.ripples.push({ x, y, age: 0, strength: Math.min(1, 0.35 + speed / 900) });
     if (this.ripples.length > 10) this.ripples.shift();
+    if (speed < 450) return;
+    this.fish.forEach((f, i) => {
+      const c = centre(f);
+      const d = Math.hypot(c.x - x, c.y - y);
+      if (d > f.len * 0.9) return;
+      // dart away: a destination on the far side, fast
+      const away = Math.atan2(c.y - y, c.x - x);
+      const p = this.plans[i];
+      p.tx = Math.min(this.w - f.len * 0.6, Math.max(f.len * 0.6, f.x + Math.cos(away) * f.len * 2));
+      p.ty = Math.min(this.h - f.len * 0.4, Math.max(f.len * 0.4, f.y + Math.sin(away) * f.len * 2));
+      p.dartUntil = this.t + 0.9;
+      p.ttl = 4;
+    });
   }
 
-  /** Click / tap: drop food and a strong ripple; koi turn toward it. */
+  /** Click / tap: drop food and a strong ripple; the nearest koi swim over to eat it. */
   feed(x: number, y: number): void {
     this.food.push({ x, y, age: 0 });
     if (this.food.length > 4) this.food.shift();
@@ -87,55 +168,93 @@ export class Pond {
   step(dt: number): void {
     if (dt <= 0) return;
     this.t += dt;
-    const { w, h } = this;
     for (const r of this.ripples) r.age += dt;
     this.ripples = this.ripples.filter((r) => r.age < RIPPLE_LIFE);
     for (const f of this.food) f.age += dt;
     this.food = this.food.filter((f) => f.age < FOOD_LIFE);
 
     this.fish.forEach((f, i) => {
-      // wander: slow, smooth heading drift
-      let desired = f.a + Math.sin(this.t * 0.31 + i * 2.1) * 0.6 + Math.sin(this.t * 0.13 + i) * 0.5;
-      let speed = 34 + 10 * Math.sin(this.t * 0.4 + i * 1.7);
+      const plan = this.plans[i];
+      plan.ttl -= dt;
+      plan.clock += dt;
+
       // food: a pellet pulls the nearest koi (and the runner-up), not the whole pond
-      let best: Food | null = null;
-      let bestD = Infinity;
+      let food: Food | null = null;
+      let foodD = Infinity;
       for (const p of this.food) {
         const d = Math.hypot(p.x - f.x, p.y - f.y);
         const rank = this.fish.filter((o) => Math.hypot(p.x - o.x, p.y - o.y) < d).length;
-        if (rank < 2 && d < bestD) {
-          bestD = d;
-          best = p;
+        if (rank < 2 && d < foodD) {
+          foodD = d;
+          food = p;
         }
       }
-      if (best) {
-        desired = Math.atan2(best.y - f.y, best.x - f.x);
-        speed = Math.min(110, 50 + bestD * 0.5);
-        if (bestD < f.len * 0.3) this.food = this.food.filter((p) => p !== best);
+
+      let tx = plan.tx;
+      let ty = plan.ty;
+      let speed: number;
+      if (food) {
+        tx = food.x;
+        ty = food.y;
+        speed = Math.min(85, 38 + foodD * 0.35);
+        if (foodD < f.len * 0.14) this.food = this.food.filter((p) => p !== food);
+      } else if (this.t < plan.dartUntil) {
+        speed = 120;
+      } else {
+        // burst and glide: a few tail strokes, then coast
+        const cycle = 2.6 + (i % 2) * 0.7;
+        const stroking = plan.clock % cycle < cycle * 0.42;
+        speed = stroking ? plan.cruise : plan.cruise * 0.5;
+        if (Math.hypot(tx - f.x, ty - f.y) < f.len * 0.6 || plan.ttl <= 0) this.plans[i] = this.newPlan(f, i);
       }
-      // keep inside the pond: steer back toward the middle near the edges
-      const m = f.len * 0.55;
-      const out = Math.max(m - f.x, f.x - (w - m), m - f.y, f.y - (h - m), 0);
-      if (out > 0) {
-        const home = Math.atan2(h / 2 - f.y, w / 2 - f.x);
-        const k = Math.min(1, out / m);
-        desired = mixAngle(desired, home, 0.4 + 0.6 * k);
+
+      let desired = Math.atan2(ty - f.y, tx - f.x);
+      // look ahead: where will each neighbour be over the next two seconds? pass clear of it
+      const vfx = Math.cos(f.a) * f.v;
+      const vfy = Math.sin(f.a) * f.v;
+      const cf = centre(f);
+      this.fish.forEach((o, j) => {
+        if (o === f) return;
+        const c = centre(o);
+        const rx = c.x - cf.x;
+        const ry = c.y - cf.y;
+        const vrx = Math.cos(o.a) * o.v - vfx;
+        const vry = Math.sin(o.a) * o.v - vfy;
+        const vv = vrx * vrx + vry * vry;
+        const tStar = vv > 1e-3 ? Math.min(2, Math.max(0, -(rx * vrx + ry * vry) / vv)) : 0;
+        const px = rx + vrx * tStar;
+        const py = ry + vry * tStar;
+        const dmin = Math.hypot(px, py);
+        const near = Math.hypot(rx, ry);
+        const clear = (f.len + o.len) * 0.85;
+        const threat = Math.max(dmin < clear ? (1 - dmin / clear) * (1 - tStar / 2.4) : 0, near < clear ? 1 - near / clear : 0);
+        if (threat <= 0) return;
+        // steer away from the neighbour's predicted position; the later koi also yields speed
+        desired = mixAngle(desired, Math.atan2(-(py || ry), -(px || rx)), Math.min(0.85, 0.75 * threat + 0.1));
+        speed *= 1 - (j < i ? 0.6 : 0.3) * threat;
+        if (Math.hypot(plan.tx - c.x, plan.ty - c.y) < f.len) plan.ttl = 0;
+      });
+      // the bank comes last and wins: the closer the nose (or where it's about to be) is to
+      // the edge, the harder the koi bends back toward open water, and it never races at it
+      const m = f.len * 0.3;
+      const ax = f.x + Math.cos(f.a) * f.len * 0.7;
+      const ay = f.y + Math.sin(f.a) * f.len * 0.7;
+      const edge = (px: number, py: number) => Math.min(px, this.w - px, py * 1.6, (this.h - py) * 1.6);
+      const room = Math.min(edge(f.x, f.y), edge(ax, ay));
+      if (room < m) {
+        const k = Math.min(1, (m - room) / m);
+        desired = mixAngle(desired, Math.atan2(this.h / 2 - f.y, this.w / 2 - f.x), 0.35 + 0.6 * k);
+        speed = Math.max(speed * (1 - 0.4 * k), 18);
       }
-      // keep a little apart from each other
-      for (const o of this.fish) {
-        if (o === f) continue;
-        const d = Math.hypot(o.x - f.x, o.y - f.y);
-        const room = f.len * 1.05;
-        if (d < room) desired = mixAngle(desired, Math.atan2(f.y - o.y, f.x - o.x), 0.45 * (1 - d / room));
-      }
-      swim(f, dt, desired, speed, best ? 2.6 : 1.6);
+      swim(f, dt, desired, speed, food || this.t < plan.dartUntil ? 2.2 : 1.1 + (room < m ? 0.8 : 0));
     });
   }
 
-  /** Visit every visible cell (fish under pads; ripples and caustics on the water). */
+  /** Visit every visible cell (koi under the pads; ripples and caustics on the water). */
   render(cols: number, rows: number, put: (col: number, row: number, cell: Cell) => void): void {
     const cw = this.w / cols;
     const ch = this.h / rows;
+    this.poses = this.fish.map(pose);
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < cols; col++) {
         const x = (col + 0.5) * cw;
@@ -147,9 +266,8 @@ export class Pond {
   }
 
   private fishCell(x: number, y: number, cw: number, ch: number): Cell | null {
-    for (const f of this.fish) {
-      if (Math.abs(x - f.x) > f.len * 0.75 || Math.abs(y - f.y) > f.len * 0.75) continue;
-      const c = fishAt(f, x, y, cw, ch);
+    for (let i = 0; i < this.fish.length; i++) {
+      const c = fishAt(this.fish[i], this.poses[i], x, y, cw, ch);
       if (c) return c;
     }
     return null;
