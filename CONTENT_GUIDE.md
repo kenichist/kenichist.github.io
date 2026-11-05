@@ -83,5 +83,20 @@ This writes `public/field/grass.wide.json` and `public/field/grass.narrow.json`.
 `FIELD_CLIP = 'grass'` in `src/content/site.ts`. Run `npm run field:convert` with no arguments
 to see every option (fps, density, dissolve length, crop focus, poster frame).
 
+### Subject only (no background)
+
+To keep just a person and drop everything around them, make a mask video first, then pass it
+to the converter. Only the masked area becomes characters.
+
+```sh
+pip install numpy pillow scipy ai-edge-litert
+curl -LO https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float32/latest/selfie_multiclass_256x256.tflite
+python3 scripts/person-mask.py clip.mov mask.mkv --model selfie_multiclass_256x256.tflite
+npm run field:convert -- clip.mov --name figure --mask mask.mkv --gain 1.25 --segments 3-8,9-14
+```
+
+Close or medium framing works best, because a person far away ends up only a few characters
+tall. The model file stays outside the repo.
+
 Use footage you shot yourself or have a licence for. Slow, high-contrast footage with no
 on-screen text converts best.

@@ -17,6 +17,8 @@
  *   --focus 0.5                      horizontal focus 0–1 when cropping to the narrow grid
  *   --poster 1.5                     seconds into the clip for the still / no-JS frame
  *   --margin 0.03                    fraction trimmed from every edge before cropping
+ *   --mask mask.mkv                  keep only the white area of a matching mask video (e.g. a person
+ *                                    from scripts/person-mask.py); everything else stays empty
  *   --out public/field               output directory
  *
  * Requires ffmpeg and ffprobe on PATH. Run with: node --experimental-strip-types
@@ -45,6 +47,7 @@ const gain = Number(opt('gain', '1'));
 const edgeStart = Number(opt('edge', '0.32'));
 const focus = Math.min(1, Math.max(0, Number(opt('focus', '0.5'))));
 const outDir = opt('out', 'public/field');
+const maskPath = opt('mask', '');
 
 /* ---------- probe ---------- */
 
@@ -79,7 +82,7 @@ function smoothstep(e0: number, e1: number, x: number) {
 }
 
 /** Decode one segment to grayscale frames sized to the grid's analysis resolution. */
-function readFrames(start: number, end: number, cols: number, rows: number): Uint8Array[] {
+function readFrames(start: number, end: number, cols: number, rows: number, file = input!): Uint8Array[] {
   const W = cols * PX_W;
   const H = rows * PX_H;
   const aspect = (cols * CELL_W) / (rows * CELL_H);
@@ -97,7 +100,7 @@ function readFrames(start: number, end: number, cols: number, rows: number): Uin
   const cx = Math.round(srcW * m + (availW - cw) * focus);
   const cy = Math.round(srcH * m + (availH - ch) / 2);
   const vf = `fps=${fps},crop=${cw}:${ch}:${cx}:${cy},scale=${W}:${H}:flags=area,format=gray`;
-  const r = spawnSync('ffmpeg', ['-v', 'error', '-ss', String(start), '-t', String(end - start), '-i', input!, '-an', '-vf', vf, '-f', 'rawvideo', '-'], {
+  const r = spawnSync('ffmpeg', ['-v', 'error', '-ss', String(start), '-t', String(end - start), '-i', file, '-an', '-vf', vf, '-f', 'rawvideo', '-'], {
     maxBuffer: 1 << 30,
   });
   if (r.status !== 0) throw new Error(`ffmpeg failed: ${r.stderr}`);
@@ -109,6 +112,7 @@ function readFrames(start: number, end: number, cols: number, rows: number): Uin
 }
 
 interface CellStats {
+  M: Float32Array; // mask coverage 0..1 (1 everywhere without --mask)
   L: Float32Array; // mean luminance 0..1
   E: Float32Array; // gradient energy
   A: Float32Array; // stroke angle (deg, y-up, -90..90]
@@ -116,21 +120,27 @@ interface CellStats {
 }
 
 /** Sobel → per-cell structure tensor: energy, dominant stroke direction, coherence. */
-function analyse(img: Uint8Array, cols: number, rows: number): CellStats {
+function analyse(img: Uint8Array, cols: number, rows: number, mask?: Uint8Array): CellStats {
   const W = cols * PX_W;
   const H = rows * PX_H;
   const n = cols * rows;
+  const M = new Float32Array(n);
   const L = new Float32Array(n);
   const Jxx = new Float32Array(n);
   const Jyy = new Float32Array(n);
   const Jxy = new Float32Array(n);
-  const px = (x: number, y: number) => img[Math.min(H - 1, Math.max(0, y)) * W + Math.min(W - 1, Math.max(0, x))] / 255;
+  const at = (x: number, y: number) => Math.min(H - 1, Math.max(0, y)) * W + Math.min(W - 1, Math.max(0, x));
+  const lum = (x: number, y: number) => img[at(x, y)] / 255;
+  const cover = (x: number, y: number) => (mask ? mask[at(x, y)] / 255 : 1);
+  // Gradients run on the masked image, so a masked subject gets a clean outline.
+  const px = (x: number, y: number) => lum(x, y) * cover(x, y);
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
       const gx = px(x + 1, y - 1) + 2 * px(x + 1, y) + px(x + 1, y + 1) - px(x - 1, y - 1) - 2 * px(x - 1, y) - px(x - 1, y + 1);
       const gy = px(x - 1, y + 1) + 2 * px(x, y + 1) + px(x + 1, y + 1) - px(x - 1, y - 1) - 2 * px(x, y - 1) - px(x + 1, y - 1);
       const i = Math.floor(y / PX_H) * cols + Math.floor(x / PX_W);
-      L[i] += px(x, y);
+      L[i] += lum(x, y);
+      M[i] += cover(x, y);
       Jxx[i] += gx * gx;
       Jyy[i] += gy * gy;
       Jxy[i] += gx * gy;
@@ -142,6 +152,7 @@ function analyse(img: Uint8Array, cols: number, rows: number): CellStats {
   const area = PX_W * PX_H;
   for (let i = 0; i < n; i++) {
     L[i] /= area;
+    M[i] /= area;
     E[i] = Jxx[i] + Jyy[i];
     const phi = 0.5 * Math.atan2(2 * Jxy[i], Jxx[i] - Jyy[i]); // gradient direction (image coords)
     let a = (-(phi + Math.PI / 2) * 180) / Math.PI; // stroke direction, y-up
@@ -150,7 +161,7 @@ function analyse(img: Uint8Array, cols: number, rows: number): CellStats {
     A[i] = a;
     C[i] = E[i] > 1e-6 ? Math.sqrt((Jxx[i] - Jyy[i]) ** 2 + 4 * Jxy[i] ** 2) / E[i] : 0;
   }
-  return { L, E, A, C };
+  return { M, L, E, A, C };
 }
 
 function strokeFor(angle: number): number {
@@ -163,9 +174,11 @@ function strokeFor(angle: number): number {
 /** Turn one segment into encoded frames for a grid. */
 function convertSegment(start: number, end: number, cols: number, rows: number): string[] {
   const imgs = readFrames(start, end, cols, rows);
-  const stats = imgs.map((img) => analyse(img, cols, rows));
+  const masks = maskPath ? readFrames(start, end, cols, rows, maskPath) : [];
+  const stats = imgs.map((img, f) => analyse(img, cols, rows, masks[Math.min(f, masks.length - 1)]));
   // Normalise edge energy per segment (not per frame) so density doesn't flicker.
-  const all = stats.flatMap((s) => Array.from(s.E)).sort((a, b) => a - b);
+  // With a mask, only cells on the subject count.
+  const all = stats.flatMap((s) => Array.from(s.E).filter((_, i) => s.M[i] > 0.15)).sort((a, b) => a - b);
   const p90 = all[Math.floor(all.length * 0.9)] || 1;
   const n = cols * rows;
   return stats.map((s, f) => {
@@ -174,22 +187,29 @@ function convertSegment(start: number, end: number, cols: number, rows: number):
     for (let i = 0; i < n; i++) {
       const col = i % cols;
       const row = (i / cols) | 0;
+      if (s.M[i] < 0.12) {
+        out += ' ';
+        continue;
+      }
       const e = Math.sqrt(s.E[i] / p90);
       const motion = Math.min(1, Math.abs(s.L[i] - prev.L[i]) * 6);
       const pEdge = smoothstep(edgeStart, edgeStart + 0.7, e) * 0.82;
-      const pBright = smoothstep(0.72, 0.95, s.L[i]) * 0.22;
+      // Masked subjects get a light body fill so the figure reads as a shape, not just an outline.
+      const pBright = maskPath ? 0.18 + smoothstep(0.35, 0.9, s.L[i]) * 0.3 : smoothstep(0.72, 0.95, s.L[i]) * 0.22;
       const p = Math.min(0.92, (pEdge + pBright + motion * 0.15) * gain);
       if (hash2(col, row, 1729) >= p) {
         out += ' ';
         continue;
       }
       const lum = s.L[i];
-      const level: CellLevel = lum > 0.78 ? 3 : lum > 0.55 ? 2 : lum > 0.3 ? 1 : 1;
+      // A masked subject is the only thing on screen, so its strokes sit one tier brighter.
+      const lift = maskPath && pEdge >= 0.15 ? 1 : 0;
+      const level = Math.min(3, (lum > 0.78 ? 3 : lum > 0.55 ? 2 : 1) + lift) as CellLevel;
       let glyph: number;
-      if (pEdge < 0.15) glyph = G['.']; // bright, flat
+      if (pEdge < 0.15) glyph = maskPath ? (lum > 0.6 ? (hash2(col, row, 11) < 0.5 ? G['+'] : G['.']) : G[':']) : G['.']; // flat
       else if (s.C[i] < 0.35) glyph = lum > 0.7 ? G['*'] : hash2(col, row, 7) < 0.5 ? G[':'] : G['+'];
       else glyph = strokeFor(s.A[i]);
-      out += encodeCell(glyph, glyph === G['.'] ? 0 : level);
+      out += encodeCell(glyph, glyph === G['.'] && !maskPath ? 0 : level);
     }
     return out;
   });
