@@ -35,6 +35,23 @@ async function newPage(opts = {}, init = []) {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1, ...opts });
   for (const fn of init) await ctx.addInitScript(fn);
   const page = await ctx.newPage();
+  // Every fresh context arrives "from outside", so the entry loader runs; wait it out.
+  const settle = () =>
+    page
+      .waitForFunction(
+        () => !document.documentElement.classList.contains('is-loading') && !document.querySelector('.loader.is-leaving, .loader.is-finale'),
+        null,
+        { timeout: 15000 },
+      )
+      .catch(() => {});
+  for (const m of ['goto', 'reload', 'goBack']) {
+    const orig = page[m].bind(page);
+    page[m] = async (...args) => {
+      const r = await orig(...args);
+      await settle();
+      return r;
+    };
+  }
   page.__errors = [];
   page.on('console', (m) => { if (m.type() === 'error') page.__errors.push(m.text()); });
   page.on('pageerror', (e) => page.__errors.push('pageerror: ' + e.message));
@@ -301,6 +318,8 @@ for (const vp of VIEWPORTS) {
   pass('no-JS shows static text artwork', r.pre);
   pass('no-JS hides the (non-functional) control', r.button);
   pass('no-JS content is visible', r.workVisible);
+  const noLoader = await page.evaluate(() => getComputedStyle(document.querySelector('[data-loader]')).display === 'none' && !document.documentElement.classList.contains('is-loading'));
+  pass('no-JS never shows the loader', noLoader);
   await page.screenshot({ path: OUT + 'home-1440-nojs.png' });
   await ctx.close();
 }
@@ -411,6 +430,83 @@ if (LIVE) {
   const ta = await page.evaluate(() => getComputedStyle(document.querySelector('.field-canvas')).touchAction);
   pass('field does not capture touch scrolling', ta === 'auto' || ta.includes('pan-y'), ta);
   await ctx.close();
+}
+
+/* ---------- 12. entry loader ---------- */
+{
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  const t0 = Date.now();
+  await page.goto(BASE + '/', { waitUntil: 'commit' });
+  await page.waitForTimeout(400);
+  const during = await page.evaluate(() => ({
+    loading: document.documentElement.classList.contains('is-loading'),
+    busy: document.documentElement.getAttribute('aria-busy'),
+    role: document.querySelector('[data-loader]')?.getAttribute('role'),
+    mainHidden: getComputedStyle(document.querySelector('main')).visibility === 'hidden',
+    art: [...document.querySelectorAll('[data-layer]')].some((el) => el.textContent.trim().length > 0),
+  }));
+  pass('loader shows on entry, hides the page, and is announced as status', during.loading && during.busy === 'true' && during.role === 'status' && during.mainHidden && during.art, JSON.stringify(during));
+  // record which finale phases appear
+  const seen = { focus: false, finale: false, burning: false };
+  while (await page.evaluate(() => !!document.querySelector('[data-loader]'))) {
+    const c = await page.evaluate(() => document.querySelector('[data-loader]')?.className ?? '');
+    if (c.includes('is-focus')) seen.focus = true;
+    if (c.includes('is-finale')) seen.finale = true;
+    if (c.includes('is-burning')) seen.burning = true;
+    await page.waitForTimeout(40);
+    if (Date.now() - t0 > 15000) break;
+  }
+  const revealMs = Date.now() - t0;
+  const after = await page.evaluate(() => ({
+    fontLoaded: document.fonts.check('16px "Iosevka Web"'),
+    complete: document.readyState === 'complete',
+    field: document.querySelector('[data-ascii-field]')?.dataset.ready === 'true',
+  }));
+  pass('page is revealed only after load, font, and hero field are ready', after.fontLoaded && after.complete && after.field, `${revealMs} ms; ${JSON.stringify(after)}`);
+  pass('finale ran: focus → fill → burn, then the loader removed itself', seen.focus && seen.finale && seen.burning, JSON.stringify(seen));
+  report.loaderRevealMs = revealMs;
+  await page.click('a[href="/notes/"]');
+  await page.waitForLoadState('domcontentloaded');
+  pass('internal navigation skips the loader', !(await page.evaluate(() => document.documentElement.classList.contains('is-loading'))));
+  await page.reload({ waitUntil: 'commit' });
+  await page.waitForTimeout(100);
+  pass('reload shows the loader again', await page.evaluate(() => document.documentElement.classList.contains('is-loading')));
+  pass('no errors from the loader', errors.length === 0, errors.join(' | '));
+  await ctx.close();
+
+  const slow = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  await slow.route('**/_astro/AsciiField*.js', async (r) => {
+    await new Promise((res) => setTimeout(res, 3500));
+    r.continue();
+  });
+  const sp = await slow.newPage();
+  const s0 = Date.now();
+  await sp.goto(BASE + '/', { waitUntil: 'commit' });
+  await sp.waitForTimeout(2800);
+  const held = await sp.evaluate(() => document.documentElement.classList.contains('is-loading'));
+  await sp.waitForFunction(() => !document.querySelector('[data-loader]'), null, { timeout: 15000 });
+  pass('loader holds while an asset is still loading (field script delayed 3.5s)', held, `revealed at ${Date.now() - s0} ms`);
+  await slow.close();
+
+  const rm = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' });
+  const rp = await rm.newPage();
+  const r0 = Date.now();
+  await rp.goto(BASE + '/', { waitUntil: 'commit' });
+  await rp.waitForFunction(() => !document.querySelector('[data-loader]'), null, { timeout: 15000 });
+  pass('reduced motion: still network, no minimum display time', Date.now() - r0 < 1500, `${Date.now() - r0} ms`);
+  await rm.close();
+
+  const fs = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  await fs.route('**/_astro/Loader*.js', (r) => r.abort());
+  const fp = await fs.newPage();
+  const f0 = Date.now();
+  await fp.goto(BASE + '/', { waitUntil: 'commit' });
+  await fp.waitForFunction(() => getComputedStyle(document.querySelector('main')).visibility === 'visible', null, { timeout: 15000 });
+  pass('CSS failsafe reveals the page if the loader script never runs', Date.now() - f0 < 10000, `${Date.now() - f0} ms`);
+  await fs.close();
 }
 
 await browser.close();

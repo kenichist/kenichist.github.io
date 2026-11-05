@@ -159,7 +159,44 @@ pre-rendered atlas (7 glyphs × 4 tiers).
 | 1920 | content capped at 1280px and centred, so the composition holds |
 | 200% zoom | equivalent to 720px; single column, no overflow |
 
-## 7. Deliberate deviations from tooling heuristics
+## 7. Entry loader
+
+`src/components/Loader.astro`, `src/scripts/loader/{network,finale,loader}.ts`
+
+**When it shows:** on arrival from outside the site (no or cross-origin referrer) and on reload.
+It never shows on internal navigation. An inline head script decides before first paint
+by setting `html.is-loading` and `aria-busy`.
+
+**What it waits for:** the window `load` event (CSS, scripts, preloaded font), `document.fonts`,
+and, on pages with the hero field, the field's first drawn frame (`ks:field-ready`, which
+includes any clip data). There is a hard cap of 7s.
+
+| Phase | Duration | What happens |
+| --- | --- | --- |
+| Input | ~0.3s | signals stream in from the left edge to the 3 input nodes |
+| Build | ~1.2s | connections grow layer by layer (3 → 4 → 4 → 1); nodes appear as signals reach them |
+| Forward pass | loops while waiting | `*` pulses run in → hidden → hidden → output, and nodes glow as signals pass |
+| Focus | 420ms | the network recedes to 16% opacity; the output node brightens (`o → O → @`) |
+| Fill | 700ms | characters flood the viewport outward from the output node, each cell flashing bright as it ignites |
+| Burn | 1.1s | from the same point the characters burn away like paper: a scorched band ahead, a flickering ember edge, then the page shows through |
+
+The minimum before the finale is 1.7s, so the build always completes. A key press or tap shortens that
+minimum but never the wait for assets. The page becomes visible and interactive when the burn
+starts: the entrance animation replays and the hero field dissolves in. The loader removes itself
+when the burn finishes. Fast loads take about 4.0s in total.
+
+Burn order is the distance from the output node mixed with value noise (84/16), so the edge is
+ragged rather than circular. Cells are drawn on one canvas with cached glyphs, DPR is capped at 2,
+and runs of background are filled per row.
+
+**Accessibility and safety:**
+- The loader has `role="status"` with a hidden "Loading" label, and the page sits under `aria-busy`.
+- While loading, the page is `visibility: hidden`, so nothing behind the overlay can take focus.
+- With reduced motion, the network appears already built, then fades out after a 0.3s delay.
+- Without JavaScript there is no loader, because the class is never set.
+- If the loader script fails, CSS failsafes reveal the page after 8s.
+
+## 8. Deliberate deviations from tooling heuristics
 
 - **The uppercase role line sits above the name** (`AI / MACHINE LEARNING ENGINEER`). Impeccable's
   craft floor bans eyebrow labels, but the approved mockup has one, and Impeccable's own rule is
@@ -167,3 +204,6 @@ pre-rendered atlas (7 glyphs × 4 tiers).
 - **All-monospace text and a purple palette** are required by the brief. They are not a "technical
   costume".
 - Section labels are not numbered, and no metrics, counters, cards, or terminal styling were added.
+- **The entry loader** was requested later and overrides the original "no forced splash screens" rule.
+  It keeps that rule's intent: it never shows on internal navigation, it doesn't block forever,
+  it doesn't trap no-JS visitors, and it respects reduced motion.

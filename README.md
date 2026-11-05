@@ -1,6 +1,7 @@
 # Kenichi Shawn Tanzil: portfolio frontend
 
-Astro 7 (static), TypeScript, plain CSS, and one small canvas module for the hero's character field.
+Astro 7 (static), TypeScript, plain CSS, a small canvas module for the hero's character field, and an
+ASCII neural-network entry loader (see DESIGN.md §7).
 There is no backend, CMS, analytics, or client framework runtime.
 
 - Content: see **[CONTENT_GUIDE.md](CONTENT_GUIDE.md)**

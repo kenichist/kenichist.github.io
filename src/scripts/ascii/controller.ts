@@ -129,14 +129,14 @@ export class AsciiField {
     } catch {
       /* draw with the fallback face */
     }
-    if (this.abort.signal.aborted) return;
+    if (this.abort.signal.aborted) return signalReady(this.root);
 
     this.surface.appendChild(this.canvas);
     this.readColors();
     this.layout();
-    if (!this.grid) return;
+    if (!this.grid) return signalReady(this.root);
     await this.syncClip();
-    if (this.abort.signal.aborted) return;
+    if (this.abort.signal.aborted) return signalReady(this.root);
 
     this.ro = new ResizeObserver(() => this.queueResize());
     this.ro.observe(this.surface);
@@ -149,13 +149,23 @@ export class AsciiField {
     );
     this.io.observe(this.surface);
 
-    if (motionAllowed(this.flags) && !this.flags.hidden) this.revealStart = performance.now();
+    const dissolveIn = () => {
+      if (motionAllowed(this.flags) && !this.flags.hidden) this.revealStart = performance.now();
+      this.schedule();
+    };
+    // Behind the entry loader, hold the dissolve-in until the page is revealed.
+    if (document.documentElement.classList.contains('is-loading')) {
+      document.addEventListener('ks:revealed', dissolveIn, { once: true, signal: this.abort.signal });
+    } else {
+      dissolveIn();
+    }
     this.timeScale = motionAllowed(this.flags) ? 1 : 0;
     this.draw(performance.now());
     this.root.classList.add('is-live');
     if (this.button) this.button.hidden = false;
     this.syncUI();
     this.schedule();
+    signalReady(this.root);
   }
 
   destroy(): void {
@@ -516,6 +526,13 @@ const BAR = GLYPH_INDEX['|'];
 const SLASH = GLYPH_INDEX['/'];
 const BACKSLASH = GLYPH_INDEX['\\'];
 
+/** Tell the entry loader this field has drawn (or given up and kept its text fallback). */
+function signalReady(root: HTMLElement): void {
+  if (root.dataset.ready) return;
+  root.dataset.ready = 'true';
+  document.dispatchEvent(new CustomEvent('ks:field-ready'));
+}
+
 function clamp(v: number, m: number): number {
   return v > m ? m : v < -m ? -m : v;
 }
@@ -527,10 +544,10 @@ export function enhanceFields(): void {
     root.dataset.enhanced = 'true';
     try {
       const probe = document.createElement('canvas');
-      if (!probe.getContext('2d')) return; // static text fallback stays
-      void new AsciiField(root).start();
+      if (!probe.getContext('2d')) return signalReady(root); // static text fallback stays
+      new AsciiField(root).start().catch(() => signalReady(root));
     } catch {
-      /* static text fallback stays */
+      signalReady(root); // static text fallback stays
     }
   });
 }

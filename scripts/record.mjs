@@ -10,7 +10,8 @@ mkdirSync(dir, { recursive: true });
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, recordVideo: { dir, size: { width: 1440, height: 900 } } });
 const page = await ctx.newPage();
-await page.goto(BASE + '/', { waitUntil: 'networkidle' });
+await page.goto(BASE + '/', { waitUntil: 'commit' });
+await page.waitForFunction(() => !document.querySelector('[data-loader]'), null, { timeout: 15000 }); // entry loader
 await page.waitForTimeout(2500); // entrance + resting drift
 const box = await page.locator('.field-canvas').boundingBox();
 const at = (fx, fy) => [box.x + box.width * fx, box.y + box.height * fy];

@@ -25,6 +25,7 @@ for (const c of configs) {
   await cdp.send('Performance.enable');
   if (c.cpu > 1) await cdp.send('Emulation.setCPUThrottlingRate', { rate: c.cpu });
   await page.goto(BASE + '/', { waitUntil: 'networkidle' });
+  await page.waitForFunction(() => !document.querySelector('[data-loader]'), null, { timeout: 15000 });
   await page.waitForTimeout(1500);
   const m = async () => Object.fromEntries((await cdp.send('Performance.getMetrics')).metrics.map((x) => [x.name, x.value]));
 

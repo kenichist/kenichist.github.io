@@ -1,0 +1,145 @@
+---
+/**
+ * Entry loading screen: signals run through an ASCII neural network while assets load;
+ * then the output node is focused, characters flood the screen from it and burn away.
+ * Hidden unless the inline head script set `html.is-loading`, so visitors without
+ * JS never see it. See src/scripts/loader/loader.ts.
+ */
+---
+
+<div class="loader" data-loader role="status">
+  <span class="sr-only">Loading</span>
+  <div class="loader-art" aria-hidden="true">
+    <pre class="loader-layer loader-edges" data-layer="edges"></pre>
+    <pre class="loader-layer loader-nodes" data-layer="nodes"></pre>
+    <pre class="loader-layer loader-pulses" data-layer="pulses"></pre>
+  </div>
+  <p class="loader-caption" aria-hidden="true">loading</p>
+  <canvas class="loader-finale" data-finale aria-hidden="true"></canvas>
+</div>
+
+<script>
+  import { runLoader } from '../scripts/loader/loader';
+  runLoader();
+</script>
+
+<style is:global>
+  .loader {
+    display: none;
+  }
+
+  html.is-loading .loader,
+  .loader.is-leaving,
+  .loader.is-burning {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: var(--space-5);
+    background:
+      radial-gradient(60rem 40rem at 50% 40%, var(--color-bg-glow), transparent 70%),
+      var(--color-bg);
+  }
+
+  .loader.is-leaving {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 300ms ease-out;
+  }
+
+  /* Focus: everything but the output node recedes. */
+  .loader-edges,
+  .loader-nodes,
+  .loader-caption {
+    transition: opacity 380ms ease-out;
+  }
+
+  .loader.is-focus .loader-edges,
+  .loader.is-focus .loader-nodes {
+    opacity: 0.16;
+  }
+
+  .loader.is-focus .loader-caption {
+    opacity: 0;
+  }
+
+  /* Finale canvas covers the viewport; once burning, the page shows through the holes. */
+  .loader-finale {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .loader.is-burning {
+    background: transparent;
+    pointer-events: none;
+  }
+
+  .loader.is-burning .loader-art,
+  .loader.is-burning .loader-caption {
+    visibility: hidden;
+  }
+
+  /* While loading, the page sits underneath, laid out but invisible and out of the
+     focus order. If the loader script never runs, these failsafes reveal it. */
+  html.is-loading body > :not(.loader) {
+    visibility: hidden;
+    animation: ks-failsafe-show 0s 8s forwards;
+  }
+
+  html.is-loading .loader {
+    animation: ks-failsafe-hide 0s 8s forwards;
+  }
+
+  @keyframes ks-failsafe-show {
+    to {
+      visibility: visible;
+    }
+  }
+
+  @keyframes ks-failsafe-hide {
+    to {
+      visibility: hidden;
+      opacity: 0;
+    }
+  }
+
+  .loader-art {
+    position: relative;
+    /* 41 × 13 cells at 0.78em × 1.28em, scaled to fit narrow screens */
+    font-size: clamp(9px, 2.4vw, 15px);
+    width: calc(41 * 0.78em);
+    height: calc(13 * 1.28em);
+  }
+
+  .loader-layer {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    font: inherit;
+    line-height: 1.28;
+    letter-spacing: 0.28em;
+    white-space: pre;
+  }
+
+  .loader-edges {
+    color: var(--color-accent);
+    opacity: 0.75;
+  }
+
+  .loader-nodes {
+    color: var(--color-text-2);
+  }
+
+  .loader-pulses {
+    color: var(--color-text);
+  }
+
+  .loader-caption {
+    font-size: var(--step--1);
+    letter-spacing: var(--track-label);
+    color: var(--color-text-2);
+  }
+</style>
