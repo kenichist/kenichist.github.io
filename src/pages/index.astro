@@ -34,16 +34,16 @@ const notes = content.notes.slice(0, 2).map((n) => ({ href: `/notes/${n.slug}/`,
   <section id="notes" class="wrap section" aria-labelledby="notes-heading" data-reveal>
     <div class="notes">
     <div class="section-head">
-      <h2 id="notes-heading" class="label">notes</h2>
+      <h2 id="notes-heading" class="label">research</h2>
       {
         content.notes.length > 0 && (
           <a class="action small" href="/notes/">
-            <span aria-hidden="true">[</span>all notes<span aria-hidden="true">]</span>
+            <span aria-hidden="true">[</span>all research<span aria-hidden="true">]</span>
           </a>
         )
       }
     </div>
-    {notes.length > 0 ? <EntryList items={notes} size="small" label="Recent notes" /> : <p class="empty">No notes published yet.</p>}
+    {notes.length > 0 ? <EntryList items={notes} size="small" label="Recent research" /> : <p class="empty">No research published yet.</p>}
     </div>
   </section>
 </Base>

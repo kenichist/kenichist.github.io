@@ -31,6 +31,8 @@ export interface Project {
   limitations?: string;
   githubUrl?: string;
   demoUrl?: string;
+  /** Any other links (e.g. downloads). Only https/http URLs are kept. */
+  links?: ContactLink[];
   /** Drafts never generate routes, list entries, or sitemap entries. */
   draft?: boolean;
 }
@@ -43,5 +45,8 @@ export interface Note {
   body: string;
   /** ISO date, YYYY-MM-DD. */
   date?: string;
+  technologies?: string[];
+  /** e.g. the code repository. Only https/http URLs are kept. */
+  links?: ContactLink[];
   draft?: boolean;
 }

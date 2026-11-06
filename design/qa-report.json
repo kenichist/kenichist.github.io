@@ -2,39 +2,39 @@
   "base": "http://127.0.0.1:4330",
   "checks": [
     {
-      "name": "no horizontal scroll at 320 across 9 routes",
+      "name": "no horizontal scroll at 320 across 10 routes",
       "ok": true,
       "detail": ""
     },
     {
-      "name": "no horizontal scroll at 390 across 9 routes",
+      "name": "no horizontal scroll at 390 across 10 routes",
       "ok": true,
       "detail": ""
     },
     {
-      "name": "no horizontal scroll at 768 across 9 routes",
+      "name": "no horizontal scroll at 768 across 10 routes",
       "ok": true,
       "detail": ""
     },
     {
-      "name": "no horizontal scroll at 1440 across 9 routes",
+      "name": "no horizontal scroll at 1440 across 10 routes",
       "ok": true,
       "detail": ""
     },
     {
-      "name": "no horizontal scroll at 1920 across 9 routes",
+      "name": "no horizontal scroll at 1920 across 10 routes",
       "ok": true,
       "detail": ""
     },
     {
-      "name": "no horizontal scroll at 1440-zoom200 across 9 routes",
+      "name": "no horizontal scroll at 1440-zoom200 across 10 routes",
       "ok": true,
       "detail": ""
     },
     {
       "name": "all internal links resolve (crawl)",
       "ok": true,
-      "detail": "8 pages; "
+      "detail": "7 pages; "
     },
     {
       "name": "no console errors on crawled pages",
@@ -49,7 +49,7 @@
     {
       "name": "pause control is keyboard reachable",
       "ok": true,
-      "detail": "skip to content → kenichi / home → work → notes → contact → [ explore work ↓ ] → [ pause the background animation ] → Project title 01 → → Project title 02 → → Project title 03 with a deliberately lon → Project title 04 → → [ all notes ] → Research note 01 → → Research note 02 →"
+      "detail": "skip to content → kenichi / home → work → research → contact → [ explore work ↓ ] → [ pause the background animation ] → World Cup 2026 match predictor → → Folia, a programmable local notes app → → SkyBlock market forecaster → → Topic Feed and an adaptive-bot benchmark → [ all research ] → DeFOMO: multimodal fake news detection → → github (opens in a new tab)"
     },
     {
       "name": "every focused element shows a visible focus ring",
@@ -229,7 +229,7 @@
     {
       "name": "back restores scroll position",
       "ok": true,
-      "detail": "scrollY=900"
+      "detail": "scrollY=885"
     },
     {
       "name": "no errors during navigation",
@@ -237,12 +237,27 @@
       "detail": ""
     },
     {
-      "name": "demo pages are noindex",
+      "name": "real site: indexable, no demo marker",
       "ok": true,
-      "detail": "noindex, nofollow"
+      "detail": "null"
     },
     {
-      "name": "demo preview is marked exactly once",
+      "name": "real site: four projects on the homepage",
+      "ok": true,
+      "detail": "World Cup 2026 match predictor | Folia, a programmable local notes app | SkyBlock market forecaster | Topic Feed and an adaptive-bot benchmark"
+    },
+    {
+      "name": "real site: research lists DeFOMO",
+      "ok": true,
+      "detail": "DeFOMO: multimodal fake news detection"
+    },
+    {
+      "name": "real site: contact links are real (GitHub)",
+      "ok": true,
+      "detail": "https://github.com/kenichist"
+    },
+    {
+      "name": "real site: no placeholder copy anywhere on the homepage",
       "ok": true,
       "detail": ""
     },
@@ -252,42 +267,47 @@
       "detail": ""
     },
     {
-      "name": "demo robots.txt disallows crawling",
+      "name": "every project page has Problem, Approach and Technical contributions",
+      "ok": true,
+      "detail": "World Cup 2026 match predictor: Problem/Approach/Technical contributions/Results/Limitations ; Folia, a programmable local notes app: Problem/Approach/Technical contributions/Results/Limitations ; SkyBlock market forecaster: Problem/Approach/Technical contributions/Limitations ; Topic Feed and an adaptive-bot benchmark: Problem/Approach/Technical contributions/Limitations"
+    },
+    {
+      "name": "external project links are https and open in a new tab",
+      "ok": true,
+      "detail": "https://github.com/kenichist/wc_predictor https://github.com/kenichist/folia https://github.com/kenichist/folia/releases/latest"
+    },
+    {
+      "name": "robots.txt allows crawling",
       "ok": true,
       "detail": ""
     },
     {
-      "name": "demo sitemap lists nothing",
-      "ok": true,
-      "detail": ""
-    },
-    {
-      "name": "draft fixture has no route",
+      "name": "demo fixture routes are not generated",
       "ok": true,
       "detail": "404"
     },
     {
-      "name": "live: indexable, no demo marker",
+      "name": "demo: pages are noindex",
+      "ok": true,
+      "detail": "noindex, nofollow"
+    },
+    {
+      "name": "demo: preview is marked exactly once",
       "ok": true,
       "detail": ""
     },
     {
-      "name": "live: no fixture rows",
+      "name": "demo: robots.txt disallows crawling",
       "ok": true,
       "detail": ""
     },
     {
-      "name": "live: intentional empty states",
-      "ok": true,
-      "detail": "Project write-ups are in progress. | No notes published yet. | Contact links haven't been added yet."
-    },
-    {
-      "name": "live: no placeholder intro or dead CTA",
+      "name": "demo: sitemap lists nothing",
       "ok": true,
       "detail": ""
     },
     {
-      "name": "live: fixture routes are not generated",
+      "name": "demo: draft fixture has no route",
       "ok": true,
       "detail": "404"
     },
@@ -324,7 +344,7 @@
     {
       "name": "page is revealed only after load, font, and hero field are ready",
       "ok": true,
-      "detail": "4015 ms; {\"fontLoaded\":true,\"complete\":true,\"field\":true}"
+      "detail": "3918 ms; {\"fontLoaded\":true,\"complete\":true,\"field\":true}"
     },
     {
       "name": "finale ran: focus → fill → burn, then the loader removed itself",
@@ -349,17 +369,17 @@
     {
       "name": "loader holds while an asset is still loading (field script delayed 3.5s)",
       "ok": true,
-      "detail": "revealed at 5682 ms"
+      "detail": "revealed at 5699 ms"
     },
     {
       "name": "reduced motion: still network, no minimum display time",
       "ok": true,
-      "detail": "148 ms"
+      "detail": "97 ms"
     },
     {
       "name": "CSS failsafe reveals the page if the loader script never runs",
       "ok": true,
-      "detail": "8064 ms"
+      "detail": "8067 ms"
     },
     {
       "name": "clicking a link to another page starts the ASCII cover",
@@ -369,7 +389,7 @@
     {
       "name": "the next page arrives covered and burns open, then cleans up",
       "ok": true,
-      "detail": "1000 ms click → revealed"
+      "detail": "1034 ms click → revealed"
     },
     {
       "name": "back button returns without a cover",
@@ -399,29 +419,29 @@
     {
       "name": "if the transition script fails on arrival, the page shows itself (≤ 2.5s)",
       "ok": true,
-      "detail": "2497 ms"
+      "detail": "2544 ms"
     }
   ],
   "screenshots": [
     "home-320.png",
     "home-390.png",
     "home-390-full.png",
-    "work-project-03-390.png",
+    "work-world-cup-predictor-390.png",
     "notes-390.png",
     "home-768.png",
     "home-1440.png",
     "home-1440-full.png",
-    "work-project-03-1440.png",
+    "work-world-cup-predictor-1440.png",
     "notes-1440.png",
     "home-1920.png",
     "home-1440-zoom200.png"
   ],
   "scene": "koi",
   "activeFrameRate": 30,
-  "loaderRevealMs": 4015,
-  "transitionMs": 1000,
+  "loaderRevealMs": 3918,
+  "transitionMs": 1034,
   "summary": {
-    "total": 80,
+    "total": 84,
     "failed": 0
   }
 }

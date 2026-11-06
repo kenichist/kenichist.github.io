@@ -1,7 +1,8 @@
 // Rendered-site QA. Usage:
 //   npm run build && npx astro preview --port 4321 &
 //   DEMO_CONTENT=0 npx astro build --outDir dist-live && python3 -m http.server 4322 -d dist-live &
-//   BASE=http://127.0.0.1:4321 LIVE=http://127.0.0.1:4322 node scripts/qa.mjs
+//   BASE=http://127.0.0.1:4321 DEMO=http://127.0.0.1:4322 node scripts/qa.mjs
+//   (BASE = the real site; DEMO = optional build with DEMO_CONTENT=1 for the demo-mode checks)
 // Writes screenshots to design/screenshots/ and a JSON report to design/qa-report.json.
 import { createRequire } from 'node:module';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -10,7 +11,7 @@ const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
 
 const BASE = process.env.BASE ?? 'http://127.0.0.1:4321';
-const LIVE = process.env.LIVE ?? '';
+const DEMO = process.env.DEMO ?? '';
 const OUT = new URL('../design/screenshots/', import.meta.url).pathname;
 mkdirSync(OUT, { recursive: true });
 
@@ -20,7 +21,7 @@ const pass = (name, ok, detail = '') => {
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? ' — ' + detail : ''}`);
 };
 
-const ROUTES = ['/', '/work/', '/work/project-01/', '/work/project-02/', '/work/project-03/', '/notes/', '/notes/research-note-01/', '/lab/digits/', '/does-not-exist/'];
+const ROUTES = ['/', '/work/', '/work/world-cup-predictor/', '/work/folia/', '/work/skyblock-market-forecaster/', '/work/topic-feed/', '/notes/', '/notes/defomo/', '/lab/digits/', '/does-not-exist/'];
 
 /** Counts rAF callbacks so tests can tell whether the field is scheduling work. */
 const RAF_COUNTER = () => {
@@ -109,7 +110,7 @@ for (const vp of VIEWPORTS) {
     if (overflow > 0) pass(`no horizontal scroll ${vp.name} ${route}`, false, `${overflow}px`);
   }
   pass(`no horizontal scroll at ${vp.name} across ${ROUTES.length} routes`, true);
-  for (const route of ['/', '/work/project-03/', '/notes/']) {
+  for (const route of ['/', '/work/world-cup-predictor/', '/notes/']) {
     await page.goto(BASE + route, { waitUntil: 'networkidle' });
     await page.waitForTimeout(900);
     const slug = route === '/' ? 'home' : route.replaceAll('/', '-').replace(/^-|-$/g, '');
@@ -368,47 +369,62 @@ for (const vp of VIEWPORTS) {
   await ctx.close();
 }
 
-/* ---------- 9. demo flags ---------- */
+/* ---------- 9. real content ---------- */
 {
   const { ctx, page } = await newPage();
   await page.goto(BASE + '/', { waitUntil: 'networkidle' });
   const r = await page.evaluate(() => ({
-    robots: document.querySelector('meta[name=robots]')?.content,
-    notes: document.querySelectorAll('.demo-note').length,
+    robots: document.querySelector('meta[name=robots]')?.content ?? null,
+    demo: document.querySelectorAll('.demo-note').length,
+    work: [...document.querySelectorAll('#work .row-title')].map((e) => e.textContent.trim()),
+    research: [...document.querySelectorAll('#notes .row-title')].map((e) => e.textContent.trim()),
+    contact: [...document.querySelectorAll('.contact-links a')].map((a) => a.getAttribute('href')),
+    placeholders: /placeholder|Project title \d|Research note \d/i.test(document.body.innerText),
     deadLinks: [...document.querySelectorAll('a')].filter((a) => a.getAttribute('href') === '#').length,
   }));
-  pass('demo pages are noindex', r.robots === 'noindex, nofollow', r.robots);
-  pass('demo preview is marked exactly once', r.notes === 1);
+  pass('real site: indexable, no demo marker', r.robots === null && r.demo === 0, String(r.robots));
+  pass('real site: four projects on the homepage', r.work.length === 4, r.work.join(' | '));
+  pass('real site: research lists DeFOMO', r.research.length === 1 && /DeFOMO/.test(r.research[0]), r.research.join(' | '));
+  pass('real site: contact links are real (GitHub)', r.contact.length >= 1 && r.contact.every((h) => /^(https:\/\/|mailto:)/.test(h)), r.contact.join(' '));
+  pass('real site: no placeholder copy anywhere on the homepage', !r.placeholders);
   pass('no dead href="#" links', r.deadLinks === 0);
+  // every project page: sections render, external links are real and open in a new tab
+  const projects = await page.$$eval('#work a.row', (as) => as.map((a) => a.getAttribute('href')));
+  const linkInfo = [];
+  for (const href of projects) {
+    await page.goto(BASE + href, { waitUntil: 'networkidle' });
+    const info = await page.evaluate(() => ({
+      h1: document.querySelector('h1')?.textContent.trim(),
+      sections: [...document.querySelectorAll('.body h2')].map((h) => h.textContent.trim()),
+      ext: [...document.querySelectorAll('.external a')].map((a) => ({ href: a.getAttribute('href'), blank: a.target === '_blank' })),
+    }));
+    linkInfo.push(info);
+  }
+  pass('every project page has Problem, Approach and Technical contributions', linkInfo.every((i) => ['Problem', 'Approach', 'Technical contributions'].every((h) => i.sections.includes(h))), linkInfo.map((i) => `${i.h1}: ${i.sections.join('/')}`).join(' ; '));
+  pass('external project links are https and open in a new tab', linkInfo.flatMap((i) => i.ext).every((e) => e.href.startsWith('https://') && e.blank), linkInfo.flatMap((i) => i.ext.map((e) => e.href)).join(' '));
   const robots = await (await page.goto(BASE + '/robots.txt')).text();
-  pass('demo robots.txt disallows crawling', /Disallow: \//.test(robots));
-  const sitemap = await (await page.goto(BASE + '/sitemap.xml')).text();
-  pass('demo sitemap lists nothing', !/<loc>/.test(sitemap));
-  const draft = await page.goto(BASE + '/work/project-draft/');
-  pass('draft fixture has no route', draft.status() === 404, String(draft.status()));
+  pass('robots.txt allows crawling', /Allow: \//.test(robots) && !/Disallow: \//.test(robots));
+  const fixture = await page.goto(BASE + '/work/project-01/');
+  pass('demo fixture routes are not generated', fixture.status() === 404, String(fixture.status()));
   await ctx.close();
 }
 
-/* ---------- 10. live (non-demo) build with empty content ---------- */
-if (LIVE) {
+/* ---------- 10. demo-mode build (DEMO_CONTENT=1) ---------- */
+if (DEMO) {
   const { ctx, page } = await newPage();
-  await page.goto(LIVE + '/', { waitUntil: 'networkidle' });
+  await page.goto(DEMO + '/', { waitUntil: 'networkidle' });
   const r = await page.evaluate(() => ({
-    robots: document.querySelector('meta[name=robots]')?.content ?? null,
-    demo: document.querySelectorAll('.demo-note').length,
-    rows: document.querySelectorAll('.row').length,
-    empties: [...document.querySelectorAll('.empty, .contact-empty')].map((e) => e.textContent.trim()),
-    intro: !!document.querySelector('.intro'),
-    cta: !!document.querySelector('.cta'),
+    robots: document.querySelector('meta[name=robots]')?.content,
+    notes: document.querySelectorAll('.demo-note').length,
   }));
-  pass('live: indexable, no demo marker', r.robots === null && r.demo === 0);
-  pass('live: no fixture rows', r.rows === 0);
-  pass('live: intentional empty states', r.empties.length === 3, r.empties.join(' | '));
-  pass('live: no placeholder intro or dead CTA', !r.intro && !r.cta);
-  await scrollThrough(page);
-  await page.screenshot({ path: OUT + 'home-1440-live-empty.png', fullPage: true });
-  const fixture = await page.goto(LIVE + '/work/project-01/');
-  pass('live: fixture routes are not generated', fixture.status() === 404, String(fixture.status()));
+  pass('demo: pages are noindex', r.robots === 'noindex, nofollow', r.robots);
+  pass('demo: preview is marked exactly once', r.notes === 1);
+  const robots = await (await page.goto(DEMO + '/robots.txt')).text();
+  pass('demo: robots.txt disallows crawling', /Disallow: \//.test(robots));
+  const sitemap = await (await page.goto(DEMO + '/sitemap.xml')).text();
+  pass('demo: sitemap lists nothing', !/<loc>/.test(sitemap));
+  const draft = await page.goto(DEMO + '/work/project-draft/');
+  pass('demo: draft fixture has no route', draft.status() === 404, String(draft.status()));
   await ctx.close();
 }
 

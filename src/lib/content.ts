@@ -57,7 +57,12 @@ export function projectLinks(p: Project): { label: string; href: string }[] {
   const out: { label: string; href: string }[] = [];
   if (isUsableUrl(p.githubUrl)) out.push({ label: 'source on github', href: p.githubUrl });
   if (isUsableUrl(p.demoUrl)) out.push({ label: 'live demo', href: p.demoUrl });
-  return out;
+  return [...out, ...extraLinks(p.links)];
+}
+
+/** Labelled links with a usable http(s) URL; anything else is dropped. */
+export function extraLinks(links: readonly ContactLink[] | undefined): { label: string; href: string }[] {
+  return (links ?? []).filter((l) => hasText(l.label) && isUsableUrl(l.href)).map((l) => ({ label: l.label, href: l.href }));
 }
 
 export function paragraphs(body: string): string[] {

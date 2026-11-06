@@ -3,7 +3,7 @@ import Base from '../../layouts/Base.astro';
 import BackLink from '../../components/BackLink.astro';
 import Pager from '../../components/Pager.astro';
 import { content } from '../../lib/site-content';
-import { formatDate, neighbours, paragraphs } from '../../lib/content';
+import { extraLinks, formatDate, neighbours, paragraphs } from '../../lib/content';
 import type { Note } from '../../content/types';
 
 export function getStaticPaths() {
@@ -16,21 +16,50 @@ interface Props {
 }
 const { note, index } = Astro.props;
 const date = formatDate(note.date);
+const tech = (note.technologies ?? []).filter((t) => t.trim());
+const links = extraLinks(note.links);
 const { prev, next } = neighbours(content.notes, index);
 const toLink = (n?: Note) => (n ? { href: `/notes/${n.slug}/`, title: n.title } : undefined);
 ---
 
 <Base title={note.title} description={note.summary} current="notes">
   <article class="wrap page">
-    <BackLink href="/notes/" label="all notes" />
+    <BackLink href="/notes/" label="all research" />
     <header class="page-head">
       <h1 class="page-title enter">{note.title}</h1>
-      {date && <p class="meta enter" style="--i: 1"><time datetime={note.date}>{date}</time></p>}
+      {note.summary && <p class="overview enter" style="--i: 1">{note.summary}</p>}
+      {date && <p class="meta enter" style="--i: 2"><time datetime={note.date}>{date}</time></p>}
+      {
+        tech.length > 0 && (
+          <p class="meta enter" style="--i: 2">
+            <span class="sr-only">Technologies: </span>
+            {tech.join(' · ')}
+          </p>
+        )
+      }
     </header>
     <div class="body reading">
       {paragraphs(note.body).map((p) => <p>{p}</p>)}
+      {
+        links.length > 0 && (
+          <ul class="external">
+            {links.map((l) => (
+              <li>
+                <a class="action" href={l.href} rel="noopener" target="_blank">
+                  <span aria-hidden="true">[</span>
+                  <span>
+                    {l.label} <span class="glyph glyph-right" aria-hidden="true">↗</span>
+                    <span class="sr-only"> (opens in a new tab)</span>
+                  </span>
+                  <span aria-hidden="true">]</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        )
+      }
     </div>
-    <Pager prev={toLink(prev)} next={toLink(next)} label="More notes" />
+    <Pager prev={toLink(prev)} next={toLink(next)} label="More research" />
   </article>
 </Base>
 
@@ -50,6 +79,13 @@ const toLink = (n?: Note) => (n ? { href: `/notes/${n.slug}/`, title: n.title } 
     line-height: 1.15;
   }
 
+  .overview {
+    max-width: var(--measure);
+    margin-top: var(--space-5);
+    font-size: var(--step-1);
+    color: var(--color-text);
+  }
+
   .meta {
     margin-top: var(--space-4);
     font-size: var(--step--1);
@@ -61,5 +97,12 @@ const toLink = (n?: Note) => (n ? { href: `/notes/${n.slug}/`, title: n.title } 
     margin-top: clamp(3rem, 2rem + 3vw, 5rem);
     display: grid;
     gap: var(--space-5);
+  }
+
+  .external {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-6);
+    margin-top: var(--space-4);
   }
 </style>

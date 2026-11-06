@@ -11,7 +11,7 @@
  *   DEMO_CONTENT=0 npm run build    (or: npm run build:live)
  *   DEMO_CONTENT=1 npm run build    (or: npm run build:demo)
  */
-const DEMO_DEFAULT = true;
+const DEMO_DEFAULT = false;
 
 /** Public origin, e.g. "https://example.com". Leave empty until a domain exists; no sitemap URLs are emitted without it. */
 const SITE_URL = '';

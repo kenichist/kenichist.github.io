@@ -44,29 +44,34 @@ Separate paragraphs in `body` with a blank line.
 
 ## Demo mode
 
-Demo mode is **on** right now, so the finished interface can be reviewed. While it is on:
+Demo mode is **off**: the site shows your real projects and research. Turn it back on with
+`DEMO_DEFAULT = true` in `src/content/site.ts`, or for one build with `DEMO_CONTENT=1 npm run build`
+(shortcut: `npm run build:demo`). In demo mode:
 
 - projects and notes come from `src/content/fixtures.ts`, not from your files;
 - an empty `intro` is filled with a placeholder sentence;
 - every page carries `noindex, nofollow`, `robots.txt` disallows crawling, and the sitemap is empty;
 - one line at the top of each page says "demo preview · placeholder entries".
 
-Contact links are **never** invented, even in demo mode. If you haven't added any, the footer says so.
+Contact links are **never** invented, even in demo mode.
 
-**To turn demo mode off**, either:
+## Current content
 
-- set `DEMO_DEFAULT = false` in `src/content/site.ts`, or
-- build once with `DEMO_CONTENT=0 npm run build` (shortcut: `npm run build:live`).
+- **Projects** (`src/content/projects.ts`): World Cup 2026 match predictor, Folia, SkyBlock market
+  forecaster, and Topic Feed with the adaptive-bot benchmark. The copy was written from each
+  repository's README, code and committed reports, so check that it says what you want.
+  `skyblockauction` and `tiktok-project` are private repositories, so their pages have no GitHub
+  link. If you make them public, add `githubUrl` to their entries.
+- **Research** (`src/content/notes.ts`): DeFOMO. The section is labelled "research" on the site,
+  and its URLs stay under `/notes/`.
+- **Profile** (`src/content/profile.ts`): the GitHub profile is the only contact link. `intro` is
+  empty, so the hero shows no introduction until you add one or two sentences.
 
-With demo mode off and no content added, the site still builds. It shows intentional empty states
-("Project write-ups are in progress.", "No notes published yet.") and generates no project or note
-routes.
-
-## Checklist before turning demo mode off
+## Checklist when adding content
 
 1. Add at least the projects you want on the homepage, with `draft` unset or `false`.
 2. Fill `intro` and `contactLinks` in `profile.ts`.
-3. Set `SITE_URL` once a domain exists.
+3. `SITE_URL` is set to https://kenichist.github.io by the deploy workflow; change it there if you move to your own domain.
 4. Run `npm test && npm run build`. The build runs the type check first.
 5. Optionally run the rendered QA (see README) against the new build.
 

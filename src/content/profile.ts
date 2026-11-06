@@ -9,8 +9,8 @@ export const profile: Profile = {
   role: 'AI / Machine Learning Engineer',
   intro: '',
   contactLinks: [
+    { label: 'github', href: 'https://github.com/kenichist' },
     // { label: 'email', href: 'mailto:you@example.com' },
-    // { label: 'github', href: 'https://github.com/your-handle' },
     // { label: 'linkedin', href: 'https://www.linkedin.com/in/your-handle/' },
   ],
 };

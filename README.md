@@ -48,8 +48,8 @@ design/          reference mockup, screenshots/, motion/, qa-report.json, profil
 
 ```sh
 npm run build && npx astro preview --port 4321 &
-DEMO_CONTENT=0 npx astro build --outDir dist-live && python3 -m http.server 4322 -d dist-live &
-BASE=http://127.0.0.1:4321 LIVE=http://127.0.0.1:4322 node scripts/qa.mjs
+DEMO_CONTENT=1 npx astro build --outDir dist-demo && python3 -m http.server 4322 -d dist-demo &
+BASE=http://127.0.0.1:4321 DEMO=http://127.0.0.1:4322 node scripts/qa.mjs
 BASE=http://127.0.0.1:4321 node scripts/profile.mjs
 ```
 

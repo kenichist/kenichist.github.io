@@ -8,13 +8,13 @@ import { formatDate } from '../../lib/content';
 const items = content.notes.map((n) => ({ href: `/notes/${n.slug}/`, title: n.title, meta: formatDate(n.date) }));
 ---
 
-<Base title="Notes" current="notes">
+<Base title="Research" current="notes">
   <section class="wrap page" aria-labelledby="page-title">
     <AsciiStrip seed={53} rows={5} />
-    <h1 id="page-title" class="page-title enter">notes</h1>
-    <p class="intro muted enter" style="--i: 1">Research notes and working write-ups.</p>
+    <h1 id="page-title" class="page-title enter">research</h1>
+    <p class="intro muted enter" style="--i: 1">Research projects and write-ups.</p>
     <div class="list">
-      {items.length > 0 ? <EntryList items={items} size="small" label="All notes" /> : <p class="empty">No notes published yet.</p>}
+      {items.length > 0 ? <EntryList items={items} size="small" label="All research" /> : <p class="empty">No research published yet.</p>}
     </div>
   </section>
 </Base>

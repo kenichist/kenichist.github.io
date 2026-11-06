@@ -8,7 +8,7 @@ const { current, demo = false } = Astro.props;
 const isHome = Astro.url.pathname === '/';
 const links = [
   { key: 'work', label: 'work', href: isHome ? '#work' : '/#work' },
-  { key: 'notes', label: 'notes', href: '/notes/' },
+  { key: 'notes', label: 'research', href: '/notes/' },
   { key: 'contact', label: 'contact', href: '#contact' },
 ] as const;
 ---

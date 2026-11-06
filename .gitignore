@@ -7,3 +7,4 @@ dist-live/
 
 # local deliverable archive
 *.zip
+dist-demo/
